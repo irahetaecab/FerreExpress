@@ -145,6 +145,14 @@ label.lbl{font-size:11px;color:#94a3b8;display:block;margin-bottom:4px;font-weig
 .track-step.active .track-label{color:#f59e0b;font-weight:800}
 .track-step.completed .track-label{color:#10b981}
 .admin-hint{font-size:10px;color:#f59e0b;text-align:center;margin-top:4px;font-weight:600}
+.addr-card{background:#0f1117;border:1px solid #2e3350;border-radius:10px;padding:11px 13px;margin-bottom:8px}
+.addr-card.selectable{cursor:pointer}
+.addr-card.selected{border-color:#f59e0b;background:rgba(245,158,11,0.08)}
+.btn-gps{width:100%;padding:9px 0;border-radius:8px;border:1px solid #3b82f6;background:rgba(59,130,246,0.12);color:#93c5fd;font-weight:700;font-size:13px}
+.btn-gps:disabled{opacity:0.6}
+.btn-mini{padding:6px 10px;border-radius:6px;border:1px solid #2e3350;background:transparent;color:#94a3b8;font-weight:600;font-size:11px;text-decoration:none;display:inline-block}
+.btn-mini.danger{color:#ef4444;border-color:rgba(239,68,68,0.4)}
+.btn-map{display:block;text-align:center;padding:8px 10px;border-radius:8px;background:rgba(59,130,246,0.15);color:#93c5fd;font-weight:700;font-size:12px;text-decoration:none;margin:2px 0 10px}
 </style>
 </head>
 <body>
@@ -226,7 +234,21 @@ label.lbl{font-size:11px;color:#94a3b8;display:block;margin-bottom:4px;font-weig
         <div class="form-title">📍 Datos de entrega</div>
         <div class="info-row"><label class="lbl">Nombre completo *</label><input id="info-name" placeholder="Tu nombre"/></div>
         <div class="info-row"><label class="lbl">Teléfono / WhatsApp *</label><input id="info-phone" type="tel" placeholder="+503 7000-0000"/></div>
-        <div class="info-row"><label class="lbl">Dirección de entrega *</label><input id="info-address" placeholder="Colonia, calle, casa..."/></div>
+        <div class="info-row">
+          <label class="lbl">Dirección de entrega *</label>
+          <div id="checkout-addr-list"></div>
+          <input id="info-address" placeholder="Colonia, calle, casa..."/>
+        </div>
+        <div class="info-row" id="checkout-loc-row">
+          <label class="lbl">Ubicación en el mapa</label>
+          <div id="checkout-loc-status" style="font-size:12px;margin-bottom:8px"></div>
+          <button type="button" class="btn-gps" id="btn-checkout-gps" onclick="captureCheckoutLocation()">📍 Compartir mi ubicación actual</button>
+          <div style="font-size:11px;color:#94a3b8;margin-top:6px">Úsalo solo si estás en el lugar donde recibirás el pedido.</div>
+        </div>
+        <div class="info-row hide" id="checkout-save-row">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#94a3b8"><input type="checkbox" id="checkout-save-addr" onchange="document.getElementById('checkout-save-label').classList.toggle('hide',!this.checked)" style="width:auto"/> Guardar esta dirección en mi perfil</label>
+          <input id="checkout-save-label" class="hide" placeholder="Nombre (ej. Casa, Trabajo)" style="margin-top:8px"/>
+        </div>
         <div class="info-row"><label class="lbl">Notas adicionales</label><input id="info-notes" placeholder="Referencias, horario..."/></div>
       </div>
       <div class="cart-total-box" style="margin-bottom:14px">
@@ -253,6 +275,29 @@ label.lbl{font-size:11px;color:#94a3b8;display:block;margin-bottom:4px;font-weig
       <div class="info-row"><label class="lbl">Teléfono</label><input id="profile-edit-phone" type="tel" placeholder="+503 7000-0000"/></div>
       <div class="info-row"><label class="lbl">Dirección habitual</label><input id="profile-edit-address" placeholder="Tu dirección de entrega habitual"/></div>
       <button class="btn-primary" onclick="saveProfile()">Guardar cambios</button>
+    </div>
+    <div class="profile-card" id="addr-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="form-title" style="margin:0">📍 Mis direcciones</div>
+        <button class="btn-primary" style="padding:7px 12px;font-size:12px" onclick="openAddrForm()">+ Agregar</button>
+      </div>
+      <div id="addr-list"></div>
+      <div id="addr-form" class="hide" style="border-top:1px solid #2e3350;padding-top:14px;margin-top:10px">
+        <div class="info-row"><label class="lbl">Nombre de la dirección *</label><input id="addr-label" placeholder="Casa, Trabajo, Casa de mamá..."/></div>
+        <div class="info-row"><label class="lbl">Dirección *</label><input id="addr-text" placeholder="Colonia, calle, número de casa..."/></div>
+        <div class="info-row"><label class="lbl">Referencias para el rider</label><input id="addr-ref" placeholder="Portón verde, frente a la tienda..."/></div>
+        <div class="info-row">
+          <label class="lbl">Ubicación en el mapa</label>
+          <button type="button" class="btn-gps" id="btn-addr-gps" onclick="captureAddrLocation()">📍 Usar mi ubicación actual</button>
+          <input id="addr-paste" placeholder="...o pega coordenadas / enlace de Google Maps" oninput="parseAddrPaste()" style="margin-top:8px"/>
+          <div id="addr-loc-status" style="font-size:12px;margin-top:8px"></div>
+        </div>
+        <div class="err-msg" id="addr-err" style="text-align:left"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-secondary" onclick="closeAddrForm()">Cancelar</button>
+          <button class="btn-primary" style="flex:1" id="btn-addr-save" onclick="saveAddress()">Guardar dirección</button>
+        </div>
+      </div>
     </div>
     <div class="profile-card">
       <div class="form-title">🔒 Cambiar contraseña</div>
@@ -792,6 +837,7 @@ async function handleLoggedIn(authUser) {
   };
   updateHeaderUI();
   await loadMyOrders();
+  await loadMyAddresses();
   subscribeToMyOrders();
 }
 
@@ -868,7 +914,7 @@ async function doRegister(){
 async function doLogout(){
   unsubscribeFromMyOrders();
   await sb.auth.signOut();
-  currentUser=null; cart=[]; myOrders=[];
+  currentUser=null; cart=[]; myOrders=[]; myAddresses=[];
   updateCartBadge();
   toggleDropdown(true);
   updateHeaderUI();
@@ -1037,11 +1083,263 @@ function setCheckoutStep(s){
   document.getElementById("cart-step-1").classList.toggle("hide",s===0);
   if(s===1) document.getElementById("checkout-total").textContent="$"+cartTotal().toFixed(2);
 }
+// ═══════════════════════════════════════════════════════════════
+// UBICACIONES — direcciones guardadas + mapa para el rider
+// ═══════════════════════════════════════════════════════════════
+var myAddresses = [];
+var addrDraft = { lat: null, lng: null, acc: null };
+var checkoutLoc = null;      // { lat, lng, acc } del pedido actual
+var checkoutAddrId = null;   // id de dirección guardada elegida; null = "otra dirección"
+
+function escapeHTML(s){
+  return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+    return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c];
+  });
+}
+
+function mapsUrl(lat, lng, texto){
+  if(lat != null && lng != null) return "https://www.google.com/maps/search/?api=1&query=" + lat + "," + lng;
+  return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(texto || "");
+}
+
+function orderMapButtonHTML(o){
+  var hasLoc = o.latitud != null && o.longitud != null;
+  var url = mapsUrl(o.latitud, o.longitud, o.direccion || o.address || "");
+  var label = hasLoc ? "🗺️ Abrir ubicación en Google Maps" : "🔎 Buscar dirección en Google Maps (sin GPS)";
+  return '<a class="btn-map" href="' + url + '" target="_blank" rel="noopener">' + label + '</a>';
+}
+
+function getCurrentPosition(){
+  return new Promise(function(resolve, reject){
+    if(!navigator.geolocation){ reject({ code: 0 }); return; }
+    navigator.geolocation.getCurrentPosition(function(pos){
+      resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy });
+    }, function(err){ reject(err); }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+  });
+}
+
+function geoErrorMessage(e){
+  var c = e && e.code;
+  if(c === 1) return "Permiso de ubicación denegado. Actívalo en la configuración del navegador.";
+  if(c === 2) return "No se pudo determinar tu ubicación. Intenta de nuevo.";
+  if(c === 3) return "Se agotó el tiempo esperando la ubicación. Intenta de nuevo.";
+  return "Tu navegador no permite obtener la ubicación.";
+}
+
+function parseCoords(text){
+  if(!text) return null;
+  var m = text.match(/(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/);
+  if(!m) m = text.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+  if(!m) return null;
+  var lat = parseFloat(m[1]), lng = parseFloat(m[2]);
+  if(isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+  return { lat: lat, lng: lng };
+}
+
+async function loadMyAddresses(){
+  if(!currentUser){ myAddresses = []; return; }
+  var res = await sb.from("direcciones").select("*").eq("usuario_id", currentUser.id)
+    .order("es_predeterminada", { ascending: false }).order("creado_en", { ascending: true });
+  if(res.error){ console.error(res.error); myAddresses = []; return; }
+  myAddresses = res.data || [];
+}
+
+function renderAddrList(){
+  var el = document.getElementById("addr-list");
+  if(!el) return;
+  if(myAddresses.length === 0){
+    el.innerHTML = '<div style="font-size:13px;color:#94a3b8;padding:4px 0">Aún no tienes direcciones guardadas. Agrega una para que tu pedido llegue más rápido.</div>';
+    return;
+  }
+  el.innerHTML = myAddresses.map(function(a){
+    var hasLoc = a.latitud != null && a.longitud != null;
+    return '<div class="addr-card">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
+      + '<span style="font-weight:700;font-size:14px">' + escapeHTML(a.etiqueta) + '</span>'
+      + (a.es_predeterminada ? '<span class="pill" style="background:rgba(245,158,11,0.15);color:#f59e0b">Predeterminada</span>' : '')
+      + '</div>'
+      + '<div style="font-size:12px;color:#94a3b8;margin:4px 0">' + escapeHTML(a.direccion) + '</div>'
+      + (a.referencia ? '<div style="font-size:12px;color:#94a3b8;margin-bottom:4px">🏠 ' + escapeHTML(a.referencia) + '</div>' : '')
+      + '<div style="font-size:11px;margin-bottom:8px;color:' + (hasLoc ? '#10b981' : '#94a3b8') + '">' + (hasLoc ? '📍 Ubicación guardada' : 'Sin ubicación en el mapa') + '</div>'
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap">'
+      + (hasLoc ? '<a class="btn-mini" href="' + mapsUrl(a.latitud, a.longitud) + '" target="_blank" rel="noopener">🗺️ Ver</a>' : '')
+      + '<button class="btn-mini" onclick="updateAddressLocation(' + a.id + ')">📍 ' + (hasLoc ? 'Actualizar' : 'Agregar') + ' ubicación</button>'
+      + (!a.es_predeterminada ? '<button class="btn-mini" onclick="setDefaultAddress(' + a.id + ')">⭐ Predeterminar</button>' : '')
+      + '<button class="btn-mini danger" onclick="deleteAddress(' + a.id + ')">🗑️</button>'
+      + '</div></div>';
+  }).join("");
+}
+
+function openAddrForm(){
+  addrDraft = { lat: null, lng: null, acc: null };
+  ["addr-label", "addr-text", "addr-ref", "addr-paste"].forEach(function(id){ document.getElementById(id).value = ""; });
+  document.getElementById("addr-err").textContent = "";
+  updateAddrLocStatus();
+  document.getElementById("addr-form").classList.remove("hide");
+}
+function closeAddrForm(){ document.getElementById("addr-form").classList.add("hide"); }
+
+function updateAddrLocStatus(){
+  var el = document.getElementById("addr-loc-status");
+  if(addrDraft.lat != null){
+    el.innerHTML = '<span style="color:#10b981">✅ Ubicación capturada</span> · <a href="' + mapsUrl(addrDraft.lat, addrDraft.lng) + '" target="_blank" rel="noopener" style="color:#93c5fd">verificar en el mapa</a>'
+      + (addrDraft.acc && addrDraft.acc > 100 ? '<div style="color:#f59e0b;margin-top:3px">Precisión baja (±' + Math.round(addrDraft.acc) + ' m). Intenta de nuevo al aire libre.</div>' : '');
+  } else {
+    el.innerHTML = '<span style="color:#94a3b8">Sin ubicación todavía (opcional, pero ayuda mucho al rider)</span>';
+  }
+}
+
+async function captureAddrLocation(){
+  var btn = document.getElementById("btn-addr-gps");
+  btn.disabled = true; btn.textContent = "Obteniendo ubicación...";
+  try {
+    var p = await getCurrentPosition();
+    addrDraft = { lat: p.lat, lng: p.lng, acc: p.acc };
+  } catch(e){ showToast(geoErrorMessage(e), "err"); }
+  btn.disabled = false; btn.textContent = "📍 Usar mi ubicación actual";
+  updateAddrLocStatus();
+}
+
+function parseAddrPaste(){
+  var c = parseCoords(document.getElementById("addr-paste").value);
+  if(c) addrDraft = { lat: c.lat, lng: c.lng, acc: null };
+  updateAddrLocStatus();
+}
+
+async function saveAddress(){
+  var label = document.getElementById("addr-label").value.trim();
+  var text = document.getElementById("addr-text").value.trim();
+  var ref = document.getElementById("addr-ref").value.trim();
+  var err = document.getElementById("addr-err");
+  if(!label || !text){ err.textContent = "Escribe un nombre y la dirección"; return; }
+  err.textContent = "";
+  var btn = document.getElementById("btn-addr-save");
+  btn.disabled = true;
+  var res = await sb.from("direcciones").insert({
+    usuario_id: currentUser.id, etiqueta: label, direccion: text, referencia: ref || null,
+    latitud: addrDraft.lat, longitud: addrDraft.lng, es_predeterminada: myAddresses.length === 0
+  });
+  btn.disabled = false;
+  if(res.error){ err.textContent = "No se pudo guardar la dirección. Intenta de nuevo."; console.error(res.error); return; }
+  await loadMyAddresses();
+  closeAddrForm(); renderAddrList();
+  showToast("Dirección guardada", "ok");
+}
+
+async function setDefaultAddress(id){
+  var r1 = await sb.from("direcciones").update({ es_predeterminada: false }).eq("usuario_id", currentUser.id);
+  if(r1.error){ showToast("No se pudo actualizar", "err"); console.error(r1.error); return; }
+  var r2 = await sb.from("direcciones").update({ es_predeterminada: true }).eq("id", id);
+  if(r2.error){ showToast("No se pudo actualizar", "err"); console.error(r2.error); return; }
+  await loadMyAddresses(); renderAddrList();
+  showToast("Dirección predeterminada actualizada", "ok");
+}
+
+async function deleteAddress(id){
+  if(!confirm("¿Eliminar esta dirección?")) return;
+  var res = await sb.from("direcciones").delete().eq("id", id);
+  if(res.error){ showToast("No se pudo eliminar", "err"); console.error(res.error); return; }
+  await loadMyAddresses();
+  if(myAddresses.length > 0 && !myAddresses.some(function(a){ return a.es_predeterminada; })){
+    await sb.from("direcciones").update({ es_predeterminada: true }).eq("id", myAddresses[0].id);
+    await loadMyAddresses();
+  }
+  renderAddrList();
+  showToast("Dirección eliminada", "ok");
+}
+
+async function updateAddressLocation(id){
+  if(!confirm("¿Estás ahora mismo en esta dirección? Se guardará tu ubicación actual como el punto de entrega.")) return;
+  try {
+    var p = await getCurrentPosition();
+    var res = await sb.from("direcciones").update({ latitud: p.lat, longitud: p.lng }).eq("id", id);
+    if(res.error){ showToast("No se pudo guardar la ubicación", "err"); console.error(res.error); return; }
+    await loadMyAddresses(); renderAddrList();
+    showToast("📍 Ubicación guardada (±" + Math.round(p.acc) + " m)", "ok");
+  } catch(e){ showToast(geoErrorMessage(e), "err"); }
+}
+
+// ── Checkout: elegir dirección guardada o usar otra ──
+function renderCheckoutAddresses(){
+  var el = document.getElementById("checkout-addr-list");
+  if(!el) return;
+  if(myAddresses.length === 0){ el.innerHTML = ""; return; }
+  var html = myAddresses.map(function(a){
+    var sel = checkoutAddrId === a.id;
+    var hasLoc = a.latitud != null && a.longitud != null;
+    return '<div class="addr-card selectable' + (sel ? ' selected' : '') + '" onclick="selectCheckoutAddress(' + a.id + ')">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center">'
+      + '<span style="font-weight:700;font-size:13px">' + (sel ? '● ' : '○ ') + escapeHTML(a.etiqueta) + '</span>'
+      + (hasLoc ? '<span style="font-size:11px;color:#10b981">📍 con mapa</span>' : '')
+      + '</div><div style="font-size:12px;color:#94a3b8;margin-top:3px">' + escapeHTML(a.direccion) + '</div></div>';
+  }).join("");
+  html += '<div class="addr-card selectable' + (checkoutAddrId === null ? ' selected' : '') + '" onclick="selectCheckoutAddress(null)">'
+    + '<span style="font-weight:700;font-size:13px">' + (checkoutAddrId === null ? '● ' : '○ ') + '➕ Usar otra dirección</span></div>';
+  el.innerHTML = html;
+}
+
+function selectCheckoutAddress(id){
+  checkoutAddrId = id;
+  var input = document.getElementById("info-address");
+  var notes = document.getElementById("info-notes");
+  if(id === null){
+    input.value = ""; input.readOnly = false; input.style.opacity = "1";
+    checkoutLoc = null;
+  } else {
+    var a = myAddresses.find(function(x){ return x.id === id; });
+    if(a){
+      input.value = a.direccion; input.readOnly = true; input.style.opacity = "0.7";
+      checkoutLoc = (a.latitud != null && a.longitud != null) ? { lat: a.latitud, lng: a.longitud, acc: null } : null;
+      if(a.referencia && !notes.value.trim()) notes.value = a.referencia;
+    }
+  }
+  renderCheckoutAddresses();
+  updateCheckoutLocUI();
+}
+
+function updateCheckoutLocUI(){
+  var status = document.getElementById("checkout-loc-status");
+  var btn = document.getElementById("btn-checkout-gps");
+  var saveRow = document.getElementById("checkout-save-row");
+  var custom = checkoutAddrId === null;
+  if(checkoutLoc){
+    status.innerHTML = '<span style="color:#10b981">✅ Ubicación incluida: el rider verá tu punto en el mapa</span> · <a href="' + mapsUrl(checkoutLoc.lat, checkoutLoc.lng) + '" target="_blank" rel="noopener" style="color:#93c5fd">verificar</a>'
+      + (checkoutLoc.acc && checkoutLoc.acc > 100 ? '<div style="color:#f59e0b;margin-top:3px">Precisión baja (±' + Math.round(checkoutLoc.acc) + ' m).</div>' : '');
+  } else if(custom){
+    status.innerHTML = '<span style="color:#94a3b8">Sin ubicación en el mapa (opcional, pero ayuda al rider a llegar más rápido)</span>';
+  } else {
+    status.innerHTML = '<span style="color:#f59e0b">Esta dirección no tiene ubicación en el mapa. Puedes agregarla desde tu perfil → Mis direcciones.</span>';
+  }
+  btn.classList.toggle("hide", !custom);
+  btn.textContent = checkoutLoc ? "📍 Actualizar mi ubicación actual" : "📍 Compartir mi ubicación actual";
+  saveRow.classList.toggle("hide", !(custom && currentUser));
+}
+
+async function captureCheckoutLocation(){
+  var btn = document.getElementById("btn-checkout-gps");
+  btn.disabled = true; btn.textContent = "Obteniendo ubicación...";
+  try {
+    var p = await getCurrentPosition();
+    checkoutLoc = { lat: p.lat, lng: p.lng, acc: p.acc };
+    showToast("📍 Ubicación capturada (±" + Math.round(p.acc) + " m)", "ok");
+  } catch(e){ showToast(geoErrorMessage(e), "err"); }
+  btn.disabled = false;
+  updateCheckoutLocUI();
+}
+
 function goCheckout(){
   if(!currentUser){ openAuth("login"); showToast("Inicia sesión para continuar tu compra","err"); return; }
-  document.getElementById("info-name").value=currentUser.name||"";
-  document.getElementById("info-phone").value=currentUser.phone||"";
-  document.getElementById("info-address").value=currentUser.address||"";
+  document.getElementById("info-name").value = currentUser.name || "";
+  document.getElementById("info-phone").value = currentUser.phone || "";
+  var def = myAddresses.find(function(a){ return a.es_predeterminada; }) || myAddresses[0] || null;
+  if(def){
+    selectCheckoutAddress(def.id);
+  } else {
+    checkoutAddrId = null; checkoutLoc = null;
+    var input = document.getElementById("info-address");
+    input.value = currentUser.address || ""; input.readOnly = false; input.style.opacity = "1";
+    renderCheckoutAddresses(); updateCheckoutLocUI();
+  }
   setCheckoutStep(1);
 }
 
@@ -1063,15 +1361,26 @@ async function placeOrder() {
   btn.disabled = true; 
   btn.textContent = "Procesando...";
 
-  var { data: pedido, error: pedidoErr } = await sb.from("pedidos").insert({
-    usuario_id: currentUser ? currentUser.id : null, 
-    nombre_cliente: name, 
-    telefono: phone, 
-    direccion: address, 
-    notas: notes, 
-    total: cartTotal(), 
-    estado: "pendiente"
-  }).select().single();
+  var orderData = {
+    usuario_id: currentUser ? currentUser.id : null,
+    nombre_cliente: name,
+    telefono: phone,
+    direccion: address,
+    notas: notes,
+    total: cartTotal(),
+    estado: "pendiente",
+    latitud: checkoutLoc ? checkoutLoc.lat : null,
+    longitud: checkoutLoc ? checkoutLoc.lng : null
+  };
+  var orderMapUrl = checkoutLoc ? mapsUrl(checkoutLoc.lat, checkoutLoc.lng) : "";
+
+  var pedRes = await sb.from("pedidos").insert(orderData).select().single();
+  // Si la base aún no tiene las columnas de ubicación, el pedido se guarda igual (sin mapa)
+  if(pedRes.error && /latitud|longitud/i.test(pedRes.error.message || "")){
+    delete orderData.latitud; delete orderData.longitud;
+    pedRes = await sb.from("pedidos").insert(orderData).select().single();
+  }
+  var pedido = pedRes.data, pedidoErr = pedRes.error;
 
   if (pedidoErr) { 
     showToast("Error al crear el pedido", "err"); 
@@ -1095,6 +1404,24 @@ async function placeOrder() {
   var { error: itemsErr } = await sb.from("pedido_items").insert(items);
   if (itemsErr) console.error(itemsErr);
 
+  // Guardar la dirección en el perfil si el cliente lo pidió
+  try {
+    var saveChk = document.getElementById("checkout-save-addr");
+    if(currentUser && checkoutAddrId === null && saveChk && saveChk.checked){
+      var lbl = document.getElementById("checkout-save-label").value.trim() || "Mi dirección";
+      var sv = await sb.from("direcciones").insert({
+        usuario_id: currentUser.id, etiqueta: lbl, direccion: address,
+        latitud: checkoutLoc ? checkoutLoc.lat : null, longitud: checkoutLoc ? checkoutLoc.lng : null,
+        es_predeterminada: myAddresses.length === 0
+      });
+      if(sv.error) console.error(sv.error);
+      saveChk.checked = false;
+      document.getElementById("checkout-save-label").classList.add("hide");
+      document.getElementById("checkout-save-label").value = "";
+      await loadMyAddresses();
+    }
+  } catch(e){ console.error("No se pudo guardar la dirección:", e); }
+
   var makeWebhookUrl = "https://hook.us2.make.com/8zw66j4todufq9jjohwbmd1fwiqedhph";
   try {
     await fetch(makeWebhookUrl, {
@@ -1105,6 +1432,9 @@ async function placeOrder() {
         cliente: name,
         telefono: phone,
         direccion: address,
+        latitud: checkoutLoc ? checkoutLoc.lat : null,
+        longitud: checkoutLoc ? checkoutLoc.lng : null,
+        mapa_url: orderMapUrl,
         notas: notes,
         total: cartTotal(),
         productos: cart
@@ -1120,6 +1450,7 @@ async function placeOrder() {
     + "*Cliente:* " + name + "\n"
     + "*Teléfono:* " + phone + "\n"
     + "*Dirección:* " + address + "\n"
+    + (orderMapUrl ? "*Ubicación en mapa:* " + orderMapUrl + "\n" : "")
     + (notes ? "*Notas:* " + notes + "\n" : "")
     + "*Total:* $" + cartTotal().toFixed(2) + "\n\n"
     + "*Detalle:*\n" 
@@ -1137,6 +1468,7 @@ async function placeOrder() {
   });
 
   updateCartBadge(); 
+  checkoutLoc = null; checkoutAddrId = null;
   showToast("¡Pedido realizado con éxito! ✅", "ok"); 
   showView("pedidos");
 
@@ -1158,6 +1490,7 @@ function renderProfile(){
   document.getElementById("profile-edit-name").value=currentUser.name||"";
   document.getElementById("profile-edit-phone").value=currentUser.phone||"";
   document.getElementById("profile-edit-address").value=currentUser.address||"";
+  renderAddrList();
 }
 
 async function saveProfile(){
@@ -1251,7 +1584,7 @@ function pedidoCardHTML(o, conTracking){
     +'<span style="font-weight:700">Pedido #'+String(o.id)+'</span>'
     +'<span class="pill" style="background:rgba(16,185,129,0.15);color:#10b981">$'+parseFloat(o.total).toFixed(2)+'</span></div>'
     +'<div style="font-size:12px;color:#94a3b8;margin-bottom:6px">🕐 '+new Date(o.creado_en).toLocaleString("es")+'</div>'
-    +'<div style="font-size:12px;color:#94a3b8;margin-bottom:10px">📍 '+(o.direccion||o.address||"")+'</div>'
+    +'<div style="font-size:12px;color:#94a3b8;margin-bottom:10px">📍 '+escapeHTML(o.direccion||o.address||"")+'</div>'
     + (conTracking ? getTrackingHTML(o.id, o.estado) : '')
     +'<div style="border-top:1px solid #2e3350;padding-top:10px;margin-top:12px">'
     +items.map(function(i){ return '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>'+i.nombre_producto+' x'+i.cantidad+'</span><span style="color:#10b981">$'+(parseFloat(i.precio)*i.cantidad).toFixed(2)+'</span></div>'; }).join("")
@@ -1368,10 +1701,11 @@ function renderOrders(lista){
 
     return '<div class="order-card">'
       +'<div style="display:flex;justify-content:space-between;margin-bottom:6px">'
-      +'<span style="font-weight:700;font-size:14px">#'+o.id+' — '+o.nombre_cliente+'</span>'
+      +'<span style="font-weight:700;font-size:14px">#'+o.id+' — '+escapeHTML(o.nombre_cliente)+'</span>'
       +'<span class="pill" style="background:rgba(16,185,129,0.15);color:#10b981">$'+parseFloat(o.total).toFixed(2)+'</span>'
       +'</div>'
-      +'<div style="font-size:12px;color:#94a3b8;margin-bottom:4px">📍 '+(o.direccion||o.address||"")+' · 📞 '+o.telefono+'</div>'
+      +'<div style="font-size:12px;color:#94a3b8;margin-bottom:6px">📍 '+escapeHTML(o.direccion||o.address||"")+' · 📞 '+escapeHTML(o.telefono)+'</div>'
+      + orderMapButtonHTML(o)
       +'<div style="font-size:12px;color:#94a3b8;margin-bottom:10px">🕐 '+new Date(o.creado_en).toLocaleString("es")+' · '+items.length+' producto(s)</div>'
       +'<div style="display:flex;align-items:center;gap:10px;background:#0f1117;padding:8px 12px;border-radius:8px">'
       +'<span style="font-size:11px;color:#94a3b8;font-weight:700">ESTADO:</span>'
@@ -1410,10 +1744,11 @@ function renderOrdersHistoricos(lista){
       +'<input type="checkbox" '+checked+' onchange="toggleHistoricoSelected('+o.id+', this.checked)" style="width:18px;height:18px;margin-top:3px;flex-shrink:0;accent-color:#f59e0b"/>'
       +'<div style="flex:1">'
       +'<div style="display:flex;justify-content:space-between;margin-bottom:6px">'
-      +'<span style="font-weight:700;font-size:14px">#'+o.id+' — '+o.nombre_cliente+'</span>'
+      +'<span style="font-weight:700;font-size:14px">#'+o.id+' — '+escapeHTML(o.nombre_cliente)+'</span>'
       +'<span class="pill" style="background:rgba(16,185,129,0.15);color:#10b981">$'+parseFloat(o.total).toFixed(2)+'</span>'
       +'</div>'
-      +'<div style="font-size:12px;color:#94a3b8;margin-bottom:4px">📍 '+(o.direccion||o.address||"")+' · 📞 '+o.telefono+'</div>'
+      +'<div style="font-size:12px;color:#94a3b8;margin-bottom:6px">📍 '+escapeHTML(o.direccion||o.address||"")+' · 📞 '+escapeHTML(o.telefono)+'</div>'
+      + orderMapButtonHTML(o)
       +'<div style="font-size:12px;color:#94a3b8;margin-bottom:10px">✅ Entregado: '+new Date(o.entregado_en).toLocaleString("es")+' · '+items.length+' producto(s)</div>'
       +'<button onclick="deleteOrder('+o.id+')" style="width:100%;padding:8px 0;border-radius:8px;border:none;background:rgba(239,68,68,0.15);color:#ef4444;font-weight:700;font-size:12px">🗑️ Eliminar definitivamente</button>'
       +'</div></div></div>';
