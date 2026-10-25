@@ -152,7 +152,15 @@ label.lbl{font-size:11px;color:#94a3b8;display:block;margin-bottom:4px;font-weig
 .btn-gps:disabled{opacity:0.6}
 .btn-mini{padding:6px 10px;border-radius:6px;border:1px solid #2e3350;background:transparent;color:#94a3b8;font-weight:600;font-size:11px;text-decoration:none;display:inline-block}
 .btn-mini.danger{color:#ef4444;border-color:rgba(239,68,68,0.4)}
-#checkout-loc-row.loc-missing{outline:2px solid #ef4444;outline-offset:6px;border-radius:10px}
+.chip-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.chip{padding:8px 14px;border-radius:20px;border:1px solid #2e3350;background:transparent;color:#94a3b8;font-weight:700;font-size:13px}
+.chip.active{border-color:#f59e0b;background:rgba(245,158,11,0.15);color:#f59e0b}
+.chip:disabled{opacity:0.45}
+.btn-save-addr{width:100%;padding:10px 0;border-radius:8px;border:1px solid #10b981;background:rgba(16,185,129,0.12);color:#10b981;font-weight:700;font-size:13px}
+.btn-save-addr:disabled{opacity:0.6}
+.btn-add-addr{width:100%;padding:10px 0;border-radius:8px;border:1px dashed #f59e0b;background:transparent;color:#f59e0b;font-weight:700;font-size:13px}
+.new-addr-box{background:#0f1117;border:1px solid #2e3350;border-radius:10px;padding:12px;margin-top:10px}
+.loc-missing{outline:2px solid #ef4444;outline-offset:6px;border-radius:10px}
 .btn-map{display:block;text-align:center;padding:8px 10px;border-radius:8px;background:rgba(59,130,246,0.15);color:#93c5fd;font-weight:700;font-size:12px;text-decoration:none;margin:2px 0 10px}
 </style>
 </head>
@@ -237,25 +245,30 @@ label.lbl{font-size:11px;color:#94a3b8;display:block;margin-bottom:4px;font-weig
         <div class="info-row"><label class="lbl">Teléfono / WhatsApp *</label><input id="info-phone" type="tel" placeholder="+503 7000-0000"/></div>
         <div class="info-row">
           <label class="lbl">Dirección de entrega *</label>
-          <div id="checkout-addr-list"></div>
-          <input id="info-address" placeholder="Colonia, calle, casa..."/>
-          <a id="checkout-manage-link" class="hide" onclick="showView('perfil')" style="display:inline-block;margin-top:6px;font-size:12px;color:#93c5fd;cursor:pointer">✏️ Editar o eliminar mis direcciones</a>
+          <input type="hidden" id="info-address"/>
+          <div id="checkout-selected"></div>
+          <div id="checkout-picker" class="hide"></div>
+          <a id="checkout-manage-link" class="hide" onclick="showView('perfil')" style="display:inline-block;margin-top:8px;font-size:12px;color:#93c5fd;cursor:pointer">✏️ Editar o eliminar mis direcciones</a>
         </div>
-        <div class="info-row" id="checkout-loc-row">
-          <label class="lbl">Ubicación en el mapa * (obligatoria)</label>
-          <div id="checkout-loc-status" style="font-size:12px;margin-bottom:8px"></div>
-          <div id="checkout-loc-actions">
-            <button type="button" class="btn-gps" id="btn-checkout-gps" onclick="captureCheckoutLocation()">📍 Compartir mi ubicación actual</button>
-            <input id="checkout-paste" placeholder="...o pega coordenadas / enlace de Google Maps" oninput="parseCheckoutPaste()" style="margin-top:8px"/>
+        <div class="info-row">
+          <button type="button" class="btn-add-addr" id="btn-toggle-new" onclick="toggleNewAddrForm()">➕ Agregar dirección nueva</button>
+          <div id="new-addr-box" class="new-addr-box hide">
+            <label class="lbl">Dirección nueva *</label>
+            <input id="new-addr-text" placeholder="Colonia, calle, casa..."/>
+            <label class="lbl" style="margin-top:12px">Ubicación de esta dirección * (obligatoria)</label>
+            <div id="new-loc-status" style="font-size:12px;margin-bottom:8px"></div>
+            <button type="button" class="btn-gps" id="btn-new-gps" onclick="captureNewLocation()">📍 Compartir mi ubicación actual</button>
+            <input id="new-paste" placeholder="...o pega coordenadas / enlace de Google Maps" oninput="parseNewPaste()" style="margin-top:8px"/>
             <div style="font-size:11px;color:#94a3b8;margin-top:6px">Usa el botón si estás en el lugar donde recibirás el pedido. Si no, pega el enlace de Google Maps de ese lugar.</div>
+            <label class="lbl" style="margin-top:12px">Guardar como (opcional)</label>
+            <div class="chip-row" id="new-label-chips"></div>
+            <input id="new-addr-label" class="hide" placeholder="Nombre (ej. Casa de mamá)" style="margin-bottom:10px"/>
+            <button type="button" class="btn-save-addr" id="btn-new-save" onclick="saveNewAddress()">💾 Guardar y usar esta dirección</button>
+            <div id="new-addr-note" style="font-size:11px;color:#94a3b8;margin-top:6px"></div>
           </div>
         </div>
-        <div class="info-row hide" id="checkout-save-row">
-          <label class="lbl">Guardar esta dirección como (opcional)</label>
-          <input id="checkout-save-label" placeholder="Casa, Trabajo..."/>
-          <div id="checkout-save-note" style="font-size:11px;color:#94a3b8;margin-top:6px"></div>
-        </div>
-        <div class="info-row"><label class="lbl">Notas adicionales</label><input id="info-notes" placeholder="Referencias, horario..."/></div>
+        
+<div class="info-row"><label class="lbl">Notas adicionales</label><input id="info-notes" placeholder="Referencias, horario..."/></div>
       </div>
       <div class="cart-total-box" style="margin-bottom:14px">
         <span class="total-val" id="checkout-total">$0.00</span>
@@ -1301,145 +1314,270 @@ async function updateAddressLocation(id){
   } catch(e){ showToast(geoErrorMessage(e), "err"); }
 }
 
-// ── Checkout: elegir dirección guardada o usar otra ──
-function renderCheckoutAddresses(){
-  var el = document.getElementById("checkout-addr-list");
+// ── Checkout: dirección de entrega = una de las GUARDADAS (cada una con su propia ubicación) ──
+// ── y, aparte, un formulario para agregar una dirección NUEVA con su ubicación ──
+var lastAutoNote = "";       // última referencia puesta automáticamente en "Notas"
+var newAddrLoc = null;       // ubicación de la dirección NUEVA que se está escribiendo
+var newLabelChoice = null;   // null | "Casa" | "Trabajo" | "Otra"
+
+function addrHasLoc(a){ return !!a && a.latitud != null && a.longitud != null; }
+function getSelectedAddress(){
+  return checkoutAddrId == null ? null : (myAddresses.find(function(x){ return x.id === checkoutAddrId; }) || null);
+}
+function flashEl(id){
+  var el = document.getElementById(id);
   if(!el) return;
-  if(myAddresses.length === 0){ el.innerHTML = ""; return; }
-  var html = myAddresses.map(function(a){
-    var sel = checkoutAddrId === a.id;
-    var hasLoc = a.latitud != null && a.longitud != null;
-    return '<div class="addr-card selectable' + (sel ? ' selected' : '') + '" onclick="selectCheckoutAddress(' + a.id + ')">'
-      + '<div style="display:flex;justify-content:space-between;align-items:center">'
-      + '<span style="font-weight:700;font-size:13px">' + (sel ? '● ' : '○ ') + escapeHTML(a.etiqueta) + '</span>'
-      + (hasLoc ? '<span style="font-size:11px;color:#10b981">📍 con mapa</span>' : '<span style="font-size:11px;color:#f59e0b">⚠️ sin mapa</span>')
-      + '</div><div style="font-size:12px;color:#94a3b8;margin-top:3px">' + escapeHTML(a.direccion) + '</div></div>';
-  }).join("");
-  html += '<div class="addr-card selectable' + (checkoutAddrId === null ? ' selected' : '') + '" onclick="selectCheckoutAddress(null)">'
-    + '<span style="font-weight:700;font-size:13px">' + (checkoutAddrId === null ? '● ' : '○ ') + '➕ Usar otra dirección</span></div>';
+  el.classList.add("loc-missing");
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  setTimeout(function(){ el.classList.remove("loc-missing"); }, 2500);
+}
+
+// 1) La dirección elegida: una sola tarjeta con SU ubicación
+function renderCheckoutSelected(){
+  var el = document.getElementById("checkout-selected");
+  var manage = document.getElementById("checkout-manage-link");
+  if(manage) manage.classList.toggle("hide", myAddresses.length === 0);
+  var a = getSelectedAddress();
+  if(!a){
+    el.innerHTML = '<div class="addr-card" style="font-size:13px;color:#94a3b8">'
+      + (myAddresses.length ? 'Elige una de tus direcciones guardadas.' : 'Aún no tienes direcciones guardadas. Agrega una abajo.') + '</div>'
+      + (myAddresses.length ? '<button type="button" class="btn-mini" onclick="toggleCheckoutPicker()">🔄 Elegir dirección</button>' : '');
+    return;
+  }
+  var hasLoc = addrHasLoc(a);
+  var html = '<div class="addr-card selected">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
+    + '<span style="font-weight:700;font-size:14px">● ' + escapeHTML(a.etiqueta) + '</span>'
+    + (hasLoc ? '<span style="font-size:11px;color:#10b981">📍 con mapa</span>' : '<span style="font-size:11px;color:#f59e0b">⚠️ sin mapa</span>')
+    + '</div>'
+    + '<div style="font-size:13px;color:#cbd5e1;margin-top:4px">' + escapeHTML(a.direccion) + '</div>'
+    + (a.referencia ? '<div style="font-size:12px;color:#94a3b8;margin-top:3px">🏠 ' + escapeHTML(a.referencia) + '</div>' : '');
+  if(hasLoc){
+    html += '<div style="font-size:12px;margin-top:6px"><span style="color:#10b981">✅ Ubicación lista</span> · '
+      + '<a href="' + mapsUrl(a.latitud, a.longitud) + '" target="_blank" rel="noopener" style="color:#93c5fd">verificar</a></div>';
+  } else {
+    html += '<div style="font-size:12px;color:#f59e0b;margin:6px 0 8px">⚠️ Esta dirección no tiene ubicación. Agrégala para continuar; quedará guardada en esta dirección.</div>'
+      + '<button type="button" class="btn-gps" id="btn-sel-gps" onclick="captureSelectedLocation()">📍 Compartir mi ubicación actual</button>'
+      + '<input id="sel-paste" placeholder="...o pega coordenadas / enlace de Google Maps" oninput="parseSelectedPaste()" style="margin-top:8px"/>';
+  }
+  if(myAddresses.length > 1){
+    html += '<div style="margin-top:10px"><button type="button" class="btn-mini" onclick="toggleCheckoutPicker()">🔄 Cambiar dirección</button></div>';
+  }
+  html += '</div>';
   el.innerHTML = html;
 }
 
+// 2) Elegir entre las direcciones ya guardadas
+function toggleCheckoutPicker(force){
+  var pk = document.getElementById("checkout-picker");
+  var open = (force === undefined) ? pk.classList.contains("hide") : force;
+  pk.classList.toggle("hide", !open);
+  if(open) renderCheckoutPicker();
+}
+function renderCheckoutPicker(){
+  var pk = document.getElementById("checkout-picker");
+  pk.innerHTML = '<div style="font-size:12px;color:#94a3b8;margin:8px 0 6px">Elige a cuál dirección enviar este pedido:</div>'
+    + myAddresses.map(function(a){
+      var sel = checkoutAddrId === a.id;
+      return '<div class="addr-card selectable' + (sel ? ' selected' : '') + '" onclick="chooseCheckoutAddress(' + a.id + ')">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
+        + '<span style="font-weight:700;font-size:13px">' + (sel ? '● ' : '○ ') + escapeHTML(a.etiqueta) + '</span>'
+        + (addrHasLoc(a) ? '<span style="font-size:11px;color:#10b981">📍 con mapa</span>' : '<span style="font-size:11px;color:#f59e0b">⚠️ sin mapa</span>')
+        + '</div><div style="font-size:12px;color:#94a3b8;margin-top:3px">' + escapeHTML(a.direccion) + '</div></div>';
+    }).join("");
+}
+function chooseCheckoutAddress(id){ selectCheckoutAddress(id); toggleCheckoutPicker(false); }
+
 function selectCheckoutAddress(id){
   checkoutAddrId = id;
+  var a = getSelectedAddress();
   var input = document.getElementById("info-address");
   var notes = document.getElementById("info-notes");
-  document.getElementById("checkout-paste").value = "";
-  if(id === null){
-    input.value = ""; input.readOnly = false; input.style.opacity = "1";
-    checkoutLoc = null;
+  if(a){
+    input.value = a.direccion;
+    checkoutLoc = addrHasLoc(a) ? { lat: a.latitud, lng: a.longitud, acc: null } : null;
+    // La referencia de la dirección se pone en "Notas" sin pisar lo que el cliente escribió
+    var ref = a.referencia || "";
+    if(!notes.value.trim() || notes.value === lastAutoNote){ notes.value = ref; lastAutoNote = ref; }
   } else {
-    var a = myAddresses.find(function(x){ return x.id === id; });
-    if(a){
-      input.value = a.direccion; input.readOnly = true; input.style.opacity = "0.7";
-      checkoutLoc = (a.latitud != null && a.longitud != null) ? { lat: a.latitud, lng: a.longitud, acc: null } : null;
-      if(a.referencia && !notes.value.trim()) notes.value = a.referencia;
-    }
+    input.value = ""; checkoutLoc = null;
   }
-  renderCheckoutAddresses();
-  updateCheckoutLocUI();
+  renderCheckoutSelected();
 }
 
-function updateCheckoutLocUI(){
-  var status = document.getElementById("checkout-loc-status");
-  var actions = document.getElementById("checkout-loc-actions");
-  var btn = document.getElementById("btn-checkout-gps");
-  var saveRow = document.getElementById("checkout-save-row");
-  var custom = checkoutAddrId === null;
-  var saved = custom ? null : myAddresses.find(function(x){ return x.id === checkoutAddrId; });
-  var savedHasLoc = !!(saved && saved.latitud != null && saved.longitud != null);
-
-  if(checkoutLoc){
-    status.innerHTML = '<span style="color:#10b981">✅ Ubicación lista: el rider verá tu punto en el mapa</span> · <a href="' + mapsUrl(checkoutLoc.lat, checkoutLoc.lng) + '" target="_blank" rel="noopener" style="color:#93c5fd">verificar</a>'
-      + (checkoutLoc.acc && checkoutLoc.acc > 100 ? '<div style="color:#f59e0b;margin-top:3px">Precisión baja (±' + Math.round(checkoutLoc.acc) + ' m).</div>' : '')
-      + (savedHasLoc ? '<div style="color:#94a3b8;margin-top:3px">Ubicación guardada en esta dirección. Para cambiarla ve a Perfil → Mis direcciones.</div>' : '');
-  } else if(custom){
-    status.innerHTML = '<span style="color:#f59e0b">⚠️ Falta la ubicación. Es obligatoria para que el rider llegue a tu puerta.</span>';
-  } else {
-    status.innerHTML = '<span style="color:#f59e0b">⚠️ Esta dirección aún no tiene ubicación. Agrégala para continuar; quedará guardada para tus próximos pedidos.</span>';
-  }
-
-  // Los controles de captura se ocultan solo cuando la dirección guardada ya trae su ubicación
-  actions.classList.toggle("hide", savedHasLoc);
-  btn.textContent = checkoutLoc ? "📍 Actualizar mi ubicación actual" : "📍 Compartir mi ubicación actual";
-
-  var canSave = custom && !!currentUser;
-  saveRow.classList.toggle("hide", !canSave);
-  if(canSave){
-    document.getElementById("checkout-save-note").textContent = myAddresses.length >= MAX_ADDR
-      ? "Ya tienes " + MAX_ADDR + " direcciones guardadas: este pedido no guardará una nueva. Puedes eliminar una en tu perfil."
-      : "Se guardará automáticamente para tus próximos pedidos.";
-  }
-  document.getElementById("checkout-manage-link").classList.toggle("hide", myAddresses.length === 0);
+// 3) Completar la ubicación de una dirección guardada que no la tenía
+async function setSelectedLocation(lat, lng){
+  var a = getSelectedAddress();
+  if(!a) return;
+  var res = await sb.from("direcciones").update({ latitud: lat, longitud: lng }).eq("id", a.id);
+  if(res.error){ showToast("No se pudo guardar la ubicación", "err"); console.error(res.error); return; }
+  await loadMyAddresses();
+  selectCheckoutAddress(a.id);
+  showToast("📍 Ubicación guardada en «" + a.etiqueta + "»", "ok");
 }
-
-async function captureCheckoutLocation(){
-  var btn = document.getElementById("btn-checkout-gps");
+async function captureSelectedLocation(){
+  var btn = document.getElementById("btn-sel-gps");
   btn.disabled = true; btn.textContent = "Obteniendo ubicación...";
   try {
     var p = await getCurrentPosition();
-    checkoutLoc = { lat: p.lat, lng: p.lng, acc: p.acc };
+    await setSelectedLocation(p.lat, p.lng);
+  } catch(e){ showToast(geoErrorMessage(e), "err"); }
+  var b2 = document.getElementById("btn-sel-gps");
+  if(b2){ b2.disabled = false; b2.textContent = "📍 Compartir mi ubicación actual"; }
+}
+async function parseSelectedPaste(){
+  var c = parseCoords(document.getElementById("sel-paste").value);
+  if(c) await setSelectedLocation(c.lat, c.lng);
+}
+
+// 4) Agregar una dirección NUEVA (con su propia ubicación)
+function clearNewAddrForm(){
+  newAddrLoc = null; newLabelChoice = null;
+  ["new-addr-text", "new-paste", "new-addr-label"].forEach(function(id){
+    var e = document.getElementById(id); if(e) e.value = "";
+  });
+}
+function newAddrDirty(){
+  return !!document.getElementById("new-addr-text").value.trim() || !!newAddrLoc;
+}
+function setNewAddrFormOpen(open){
+  document.getElementById("new-addr-box").classList.toggle("hide", !open);
+  var tg = document.getElementById("btn-toggle-new");
+  tg.textContent = open ? "✕ Cancelar dirección nueva" : "➕ Agregar dirección nueva";
+  tg.classList.toggle("hide", myAddresses.length === 0);   // sin direcciones guardadas, el formulario queda siempre abierto
+  if(open) updateNewAddrUI();
+}
+function toggleNewAddrForm(){
+  var willOpen = document.getElementById("new-addr-box").classList.contains("hide");
+  if(!willOpen) clearNewAddrForm();
+  setNewAddrFormOpen(willOpen);
+}
+function updateNewAddrUI(){
+  var status = document.getElementById("new-loc-status");
+  if(newAddrLoc){
+    status.innerHTML = '<span style="color:#10b981">✅ Ubicación lista</span> · <a href="' + mapsUrl(newAddrLoc.lat, newAddrLoc.lng) + '" target="_blank" rel="noopener" style="color:#93c5fd">verificar</a>'
+      + (newAddrLoc.acc && newAddrLoc.acc > 100 ? '<div style="color:#f59e0b;margin-top:3px">Precisión baja (±' + Math.round(newAddrLoc.acc) + ' m).</div>' : '');
+  } else {
+    status.innerHTML = '<span style="color:#f59e0b">⚠️ Falta la ubicación de esta dirección. Es obligatoria para que el rider llegue a tu puerta.</span>';
+  }
+  document.getElementById("btn-new-gps").textContent = newAddrLoc ? "📍 Actualizar mi ubicación actual" : "📍 Compartir mi ubicación actual";
+  renderNewLabelChips();
+  var full = myAddresses.length >= MAX_ADDR;
+  document.getElementById("btn-new-save").disabled = full;
+  document.getElementById("new-addr-note").textContent = full
+    ? "Ya tienes " + MAX_ADDR + " direcciones guardadas. Elimina una en tu perfil para agregar otra."
+    : "Se guarda en tu perfil para usarla en tus próximos pedidos.";
+}
+async function captureNewLocation(){
+  var btn = document.getElementById("btn-new-gps");
+  btn.disabled = true; btn.textContent = "Obteniendo ubicación...";
+  try {
+    var p = await getCurrentPosition();
+    newAddrLoc = { lat: p.lat, lng: p.lng, acc: p.acc };
     showToast("📍 Ubicación capturada (±" + Math.round(p.acc) + " m)", "ok");
   } catch(e){ showToast(geoErrorMessage(e), "err"); }
   btn.disabled = false;
-  updateCheckoutLocUI();
+  updateNewAddrUI();
+}
+function parseNewPaste(){
+  var c = parseCoords(document.getElementById("new-paste").value);
+  if(c){ newAddrLoc = { lat: c.lat, lng: c.lng, acc: null }; updateNewAddrUI(); }
 }
 
-function parseCheckoutPaste(){
-  var c = parseCoords(document.getElementById("checkout-paste").value);
-  if(c){ checkoutLoc = { lat: c.lat, lng: c.lng, acc: null }; updateCheckoutLocUI(); }
+// Etiqueta rápida: Casa / Trabajo / Otra (opcional)
+function renderNewLabelChips(){
+  var el = document.getElementById("new-label-chips");
+  if(!el) return;
+  var used = function(l){ return myAddresses.some(function(a){ return normAddr(a.etiqueta) === normAddr(l); }); };
+  if(newLabelChoice && newLabelChoice !== "Otra" && used(newLabelChoice)) newLabelChoice = null;
+  var defs = [["Casa","🏠"],["Trabajo","💼"],["Otra","📌"]];
+  el.innerHTML = defs.map(function(d){
+    var dis = d[0] !== "Otra" && used(d[0]);
+    return '<button type="button" class="chip' + (newLabelChoice === d[0] ? ' active' : '') + '"'
+      + (dis ? ' disabled title="Ya tienes una dirección con este nombre"' : '')
+      + ' onclick="pickNewLabel(\'' + d[0] + '\')">' + d[1] + ' ' + d[0] + (dis ? ' ✓' : '') + '</button>';
+  }).join("");
+  document.getElementById("new-addr-label").classList.toggle("hide", newLabelChoice !== "Otra");
+}
+function pickNewLabel(l){
+  newLabelChoice = (newLabelChoice === l) ? null : l;   // tocar de nuevo la deselecciona
+  renderNewLabelChips();
+  if(newLabelChoice === "Otra") document.getElementById("new-addr-label").focus();
+}
+function newChosenLabel(){
+  if(!newLabelChoice) return "";
+  if(newLabelChoice === "Otra"){
+    var v = document.getElementById("new-addr-label").value.trim();
+    return v || "Otra";
+  }
+  return newLabelChoice;
 }
 
-// Guarda la dirección del pedido como registro del cliente (sin duplicar y con tope)
-async function persistCheckoutAddress(address){
-  if(!currentUser || !checkoutLoc) return;
+// Guarda la dirección nueva (sin duplicar y con tope) y la deja elegida para el pedido
+async function saveNewAddress(){
+  if(!currentUser){ openAuth("login"); return null; }
+  var text = document.getElementById("new-addr-text").value.trim();
+  if(!text){ showToast("Escribe la dirección", "err"); return null; }
+  if(!newAddrLoc){ showToast("Agrega la ubicación en el mapa para guardar la dirección", "err"); return null; }
+  var key = normAddr(text);
+  var existing = myAddresses.find(function(x){ return normAddr(x.direccion) === key; });
+  var btn = document.getElementById("btn-new-save");
+  btn.disabled = true;
   try {
-    var coords = { latitud: checkoutLoc.lat, longitud: checkoutLoc.lng };
-    var existing = null;
-    if(checkoutAddrId !== null){
-      existing = myAddresses.find(function(x){ return x.id === checkoutAddrId; });
-    } else {
-      var key = normAddr(address);
-      existing = myAddresses.find(function(x){ return normAddr(x.direccion) === key; });
-    }
     if(existing){
-      // Ya existe: no se crea otra fila. Solo se completa la ubicación si le faltaba.
-      if(existing.latitud == null || existing.longitud == null){
-        var up = await sb.from("direcciones").update(coords).eq("id", existing.id);
-        if(up.error) console.error(up.error);
-        else await loadMyAddresses();
+      // Ya existe: no se crea otra fila. Si le faltaba la ubicación, se completa.
+      if(!addrHasLoc(existing)){
+        var up = await sb.from("direcciones").update({ latitud: newAddrLoc.lat, longitud: newAddrLoc.lng }).eq("id", existing.id);
+        if(up.error){ showToast("No se pudo guardar", "err"); console.error(up.error); return null; }
+        await loadMyAddresses();
+        showToast("📍 Ubicación agregada a «" + existing.etiqueta + "»", "ok");
+      } else {
+        showToast("Esa dirección ya estaba guardada; se eligió para este pedido", "ok");
       }
-      return;
+      finishNewAddress(existing.id);
+      return existing.id;
     }
-    if(myAddresses.length >= MAX_ADDR) return;
-    var labelEl = document.getElementById("checkout-save-label");
-    var lbl = (labelEl && labelEl.value.trim()) || (myAddresses.length === 0 ? "Casa" : "Dirección " + (myAddresses.length + 1));
+    if(myAddresses.length >= MAX_ADDR){
+      showToast("Ya tienes " + MAX_ADDR + " direcciones guardadas. Elimina una en tu perfil.", "err");
+      return null;
+    }
+    var lbl = newChosenLabel() || (myAddresses.length === 0 ? "Casa" : "Dirección " + (myAddresses.length + 1));
     var ins = await sb.from("direcciones").insert({
-      usuario_id: currentUser.id, etiqueta: lbl, direccion: address,
-      latitud: coords.latitud, longitud: coords.longitud,
+      usuario_id: currentUser.id, etiqueta: lbl, direccion: text,
+      latitud: newAddrLoc.lat, longitud: newAddrLoc.lng,
       es_predeterminada: myAddresses.length === 0
-    });
-    if(ins.error){ console.error(ins.error); return; }
-    if(labelEl) labelEl.value = "";
+    }).select().single();
+    if(ins.error || !ins.data){ showToast("No se pudo guardar la dirección", "err"); console.error(ins.error); return null; }
     await loadMyAddresses();
-  } catch(e){ console.error("No se pudo guardar la dirección:", e); }
+    finishNewAddress(ins.data.id);
+    showToast("✅ Guardada como «" + lbl + "» y elegida para este pedido", "ok");
+    return ins.data.id;
+  } finally {
+    btn.disabled = false;
+  }
+}
+function finishNewAddress(id){
+  clearNewAddrForm();
+  selectCheckoutAddress(id);
+  setNewAddrFormOpen(false);
+  document.getElementById("checkout-selected").scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 function goCheckout(){
   if(!currentUser){ openAuth("login"); showToast("Inicia sesión para continuar tu compra","err"); return; }
   document.getElementById("info-name").value = currentUser.name || "";
   document.getElementById("info-phone").value = currentUser.phone || "";
+  clearNewAddrForm(); toggleCheckoutPicker(false);
   var def = myAddresses.find(function(a){ return a.es_predeterminada; }) || myAddresses[0] || null;
   if(def){
     selectCheckoutAddress(def.id);
   } else {
     checkoutAddrId = null; checkoutLoc = null;
-    document.getElementById("checkout-paste").value = "";
-    document.getElementById("checkout-save-label").value = "";
-    var input = document.getElementById("info-address");
-    input.value = currentUser.address || ""; input.readOnly = false; input.style.opacity = "1";
-    renderCheckoutAddresses(); updateCheckoutLocUI();
+    document.getElementById("info-address").value = "";
+    renderCheckoutSelected();
+    document.getElementById("new-addr-text").value = currentUser.address || "";
   }
+  setNewAddrFormOpen(myAddresses.length === 0);
   setCheckoutStep(1);
 }
 
@@ -1447,23 +1585,37 @@ function goCheckout(){
 // CHECKOUT + WHATSAPP + MAKE WEBHOOK
 // ═══════════════════════════════════════════════════════════════
 async function placeOrder() {
+  // Si el cliente dejó una dirección NUEVA escrita sin guardar, se guarda y se usa:
+  // así el pedido nunca sale hacia la dirección equivocada.
+  if (newAddrDirty()) {
+    if (!document.getElementById("new-addr-text").value.trim() || !newAddrLoc) {
+      showToast("Termina tu dirección nueva (dirección y ubicación) o ciérrala con «Cancelar»", "err");
+      flashEl("new-addr-box");
+      return;
+    }
+    var newId = await saveNewAddress();
+    if (!newId) return;
+  }
+
   var name = document.getElementById("info-name").value.trim();
   var phone = document.getElementById("info-phone").value.trim();
   var address = document.getElementById("info-address").value.trim();
   var notes = document.getElementById("info-notes").value.trim();
-  
-  if (!name || !phone || !address) { 
-    showToast("Completa todos los datos de entrega", "err"); 
-    return; 
+
+  if (!name || !phone) {
+    showToast("Completa tu nombre y teléfono", "err");
+    return;
+  }
+  if (!address) {
+    showToast("Elige o agrega una dirección de entrega", "err");
+    flashEl("checkout-selected");
+    return;
   }
 
   // La ubicación en el mapa es obligatoria
   if (!checkoutLoc) {
     showToast("Agrega la ubicación de entrega para continuar", "err");
-    var locRow = document.getElementById("checkout-loc-row");
-    locRow.classList.add("loc-missing");
-    locRow.scrollIntoView({ behavior: "smooth", block: "center" });
-    setTimeout(function(){ locRow.classList.remove("loc-missing"); }, 2500);
+    flashEl("checkout-selected");
     return;
   }
 
@@ -1513,9 +1665,6 @@ async function placeOrder() {
 
   var { error: itemsErr } = await sb.from("pedido_items").insert(items);
   if (itemsErr) console.error(itemsErr);
-
-  // Guardar la dirección (y su ubicación) como registro del cliente
-  await persistCheckoutAddress(address);
 
   var makeWebhookUrl = "https://hook.us2.make.com/8zw66j4todufq9jjohwbmd1fwiqedhph";
   try {
