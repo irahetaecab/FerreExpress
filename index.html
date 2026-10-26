@@ -161,6 +161,14 @@ label.lbl{font-size:11px;color:#94a3b8;display:block;margin-bottom:4px;font-weig
 .btn-add-addr{width:100%;padding:10px 0;border-radius:8px;border:1px dashed #f59e0b;background:transparent;color:#f59e0b;font-weight:700;font-size:13px}
 .new-addr-box{background:#0f1117;border:1px solid #2e3350;border-radius:10px;padding:12px;margin-top:10px}
 .loc-missing{outline:2px solid #ef4444;outline-offset:6px;border-radius:10px}
+.rider-toggle{padding:8px 12px;border-radius:20px;border:1px solid #2e3350;font-weight:700;font-size:12px;background:#1a1d27;white-space:nowrap}
+.rider-toggle.on{color:#10b981;border-color:rgba(16,185,129,.5);background:rgba(16,185,129,.1)}
+.rider-toggle.off{color:#94a3b8}
+.btn-rider-take{width:100%;padding:14px 0;border-radius:10px;border:none;background:#f59e0b;color:#000;font-weight:800;font-size:16px}
+.btn-rider-take:disabled{opacity:.6}
+.btn-rider-go{flex:1;padding:12px 0;border-radius:10px;border:none;background:#3b82f6;color:#fff;font-weight:800;font-size:14px}
+.btn-rider-done{flex:1;padding:12px 0;border-radius:10px;border:none;background:#10b981;color:#fff;font-weight:800;font-size:14px}
+.btn-rider-drop{padding:12px 14px;border-radius:10px;border:1px solid #2e3350;background:transparent;color:#94a3b8;font-weight:700;font-size:13px}
 .btn-map{display:block;text-align:center;padding:8px 10px;border-radius:8px;background:rgba(59,130,246,0.15);color:#93c5fd;font-weight:700;font-size:12px;text-decoration:none;margin:2px 0 10px}
 </style>
 </head>
@@ -182,6 +190,7 @@ label.lbl{font-size:11px;color:#94a3b8;display:block;margin-bottom:4px;font-weig
       <button class="nav-btn" id="btn-carrito" onclick="showView('carrito')">🛍️<span id="cart-badge" class="hide badge">0</span></button>
       <button class="nav-btn hide" id="btn-pedidos-nav" onclick="showView('pedidos')">📋<span class="nav-label">&nbsp;Mis Pedidos</span><span id="pedidos-badge" class="hide badge">0</span></button>
       <button class="nav-btn hide" id="btn-admin-pedidos-nav" onclick="showView('admin-pedidos')">🧾<span class="nav-label">&nbsp;Pedidos</span><span id="admin-pedidos-badge" class="hide badge">0</span></button>
+      <button class="nav-btn hide" id="btn-rider-nav" onclick="showView('rider')">🏍️<span class="nav-label">&nbsp;Entregas</span><span id="rider-badge" class="hide badge">0</span></button>
     </div>
     <div class="hdr-right" id="hdr-right">
       <button class="btn-login-hdr" onclick="openAuth('login')">Iniciar sesión</button>
@@ -339,6 +348,22 @@ label.lbl{font-size:11px;color:#94a3b8;display:block;margin-bottom:4px;font-weig
     <div id="my-orders-historicos" class="hide"><div id="my-orders-historicos-list"></div></div>
   </div>
 
+  <div id="view-rider" class="hide">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:16px">
+      <div>
+        <div style="font-size:20px;font-weight:800">🏍️ Entregas</div>
+        <div style="font-size:13px;color:#94a3b8">Toma un pedido y llévalo al cliente</div>
+      </div>
+      <button id="rider-toggle" class="rider-toggle on" onclick="riderToggleDisponible()">🟢 Disponible</button>
+    </div>
+    <div class="filter-row" style="margin-bottom:14px">
+      <button class="filter-btn active" id="rider-tab-disp" onclick="setRiderTab('disponibles')">🆕 Disponibles</button>
+      <button class="filter-btn" id="rider-tab-mis" onclick="setRiderTab('mis')">🏍️ Mis entregas</button>
+    </div>
+    <div id="rider-disponibles"></div>
+    <div id="rider-mis" class="hide"></div>
+  </div>
+
   <div id="view-admin" class="hide">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px">
       <div>
@@ -402,6 +427,7 @@ label.lbl{font-size:11px;color:#94a3b8;display:block;margin-bottom:4px;font-weig
     <div class="filter-row" style="margin-bottom:14px">
       <button class="filter-btn active" id="ap-tab-activos" onclick="setAdminPedidosTab('activos')">🔥 Activos</button>
       <button class="filter-btn" id="ap-tab-historicos" onclick="setAdminPedidosTab('historicos')">🗄️ Históricos</button>
+      <button class="filter-btn" id="ap-tab-riders" onclick="setAdminPedidosTab('riders')">🏍️ Riders</button>
     </div>
     <div id="admin-pedidos-activos">
       <div id="orders-section" class="form-card" style="padding:0;overflow:hidden">
@@ -420,6 +446,15 @@ label.lbl{font-size:11px;color:#94a3b8;display:block;margin-bottom:4px;font-weig
       <div id="orders-historicos-section" class="form-card" style="padding:0;overflow:hidden">
         <div id="orders-historicos-list"></div>
       </div>
+    </div>
+    <div id="admin-pedidos-riders" class="hide">
+      <div class="tip-banner" style="margin-bottom:14px">🏍️ Agrega como rider a alguien que ya tenga cuenta en la app y haya iniciado sesión al menos una vez. Escribe el correo con el que se registró.</div>
+      <div class="form-card" style="margin-bottom:14px">
+        <label class="lbl">Correo del rider</label>
+        <input id="rider-email" type="email" placeholder="rider@correo.com" autocapitalize="off"/>
+        <button class="btn-primary" id="btn-add-rider" style="width:100%;margin-top:10px" onclick="adminAddRider()">➕ Agregar rider</button>
+      </div>
+      <div id="riders-list"></div>
     </div>
   </div>
 </main>
@@ -853,12 +888,15 @@ async function handleLoggedIn(authUser) {
     id: authUser.id, email: authUser.email,
     name: perfil ? perfil.nombre : authUser.email.split("@")[0],
     phone: perfil ? perfil.telefono : "", address: perfil ? perfil.direccion : "",
-    isAdmin: perfil ? !!perfil.es_admin : false
+    isAdmin: perfil ? !!perfil.es_admin : false,
+    isRider: perfil ? !!perfil.es_rider : false,
+    riderDisponible: perfil ? perfil.rider_disponible !== false : true
   };
   updateHeaderUI();
   await loadMyOrders();
   await loadMyAddresses();
   subscribeToMyOrders();
+  startRiderPolling();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -877,7 +915,7 @@ function subscribeToMyOrders() {
       { event: "UPDATE", schema: "public", table: "pedidos", filter: "usuario_id=eq." + currentUser.id },
       function (payload) {
         // Actualiza el pedido en memoria con el nuevo estado
-        myOrders.forEach(function (o) { if (o.id === payload.new.id){ o.estado = payload.new.estado; o.entregado_en = payload.new.entregado_en; } });
+        myOrders.forEach(function (o) { if (o.id === payload.new.id){ o.estado = payload.new.estado; o.entregado_en = payload.new.entregado_en; o.rider_nombre = payload.new.rider_nombre; } });
         updatePedidosBadge();
         updatePedidosBadge();
         // Si el cliente está viendo "Mis pedidos" en este momento, refresca la vista
@@ -933,6 +971,7 @@ async function doRegister(){
 
 async function doLogout(){
   unsubscribeFromMyOrders();
+  stopRiderPolling();
   await sb.auth.signOut();
   currentUser=null; cart=[]; myOrders=[]; myAddresses=[];
   updateCartBadge();
@@ -956,8 +995,10 @@ function updateHeaderUI(){
     document.getElementById("dd-admin-btn").classList.toggle("hide",!currentUser.isAdmin);
     document.getElementById("dd-admin-sep").classList.toggle("hide",!currentUser.isAdmin);
     document.getElementById("btn-admin-pedidos-nav").classList.toggle("hide",!currentUser.isAdmin);
+    document.getElementById("btn-rider-nav").classList.toggle("hide",!currentUser.isRider);
   } else {
     document.getElementById("btn-admin-pedidos-nav").classList.add("hide");
+    document.getElementById("btn-rider-nav").classList.add("hide");
   }
 }
 
@@ -976,8 +1017,9 @@ document.addEventListener("click",function(e){
 async function showView(v){
   if((v==="admin"||v==="admin-pedidos") && (!currentUser||!currentUser.isAdmin)){ showToast("Acceso restringido","err"); return; }
   if((v==="perfil"||v==="pedidos") && !currentUser){ openAuth("login"); return; }
+  if(v==="rider" && (!currentUser||!currentUser.isRider)){ showToast("Acceso restringido","err"); return; }
   currentView=v;
-  ["tienda","carrito","perfil","pedidos","admin","admin-pedidos"].forEach(function(n){
+  ["tienda","carrito","perfil","pedidos","admin","admin-pedidos","rider"].forEach(function(n){
     document.getElementById("view-"+n).classList.toggle("hide",n!==v);
   });
   ["tienda","carrito"].forEach(function(n){
@@ -988,12 +1030,15 @@ async function showView(v){
   if(pedidosNavBtn) pedidosNavBtn.classList.toggle("active",v==="pedidos");
   var adminPedidosNavBtn=document.getElementById("btn-admin-pedidos-nav");
   if(adminPedidosNavBtn) adminPedidosNavBtn.classList.toggle("active",v==="admin-pedidos");
+  var riderNavBtn=document.getElementById("btn-rider-nav");
+  if(riderNavBtn) riderNavBtn.classList.toggle("active",v==="rider");
   if(v==="tienda") renderStore();
   if(v==="admin") await renderAdmin();
   if(v==="admin-pedidos") await renderAdminPedidos();
   if(v==="carrito") renderCart();
   if(v==="perfil") renderProfile();
   if(v==="pedidos") await renderMyOrders();
+  if(v==="rider"){ await loadRiderData(); renderRider(); }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1829,6 +1874,7 @@ function pedidoCardHTML(o, conTracking){
     +'<span class="pill" style="background:rgba(16,185,129,0.15);color:#10b981">$'+parseFloat(o.total).toFixed(2)+'</span></div>'
     +'<div style="font-size:12px;color:#94a3b8;margin-bottom:6px">🕐 '+new Date(o.creado_en).toLocaleString("es")+'</div>'
     +'<div style="font-size:12px;color:#94a3b8;margin-bottom:10px">📍 '+escapeHTML(o.direccion||o.address||"")+'</div>'
+    + (o.rider_nombre && o.estado!=="entregado" ? '<div style="font-size:13px;color:#f59e0b;margin-bottom:10px">🏍️ Lo lleva <strong>'+escapeHTML(o.rider_nombre)+'</strong></div>' : '')
     + (conTracking ? getTrackingHTML(o.id, o.estado) : '')
     +'<div style="border-top:1px solid #2e3350;padding-top:10px;margin-top:12px">'
     +items.map(function(i){ return '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>'+i.nombre_producto+' x'+i.cantidad+'</span><span style="color:#10b981">$'+(parseFloat(i.precio)*i.cantidad).toFixed(2)+'</span></div>'; }).join("")
@@ -1887,6 +1933,283 @@ async function renderAdmin(){
   renderInvGrid();
 }
 
+
+// ═══════════════════════════════════════════════════════════════
+// RIDER — "Yo lo llevo" (el primero que lo toma) + asignación del admin
+// ═══════════════════════════════════════════════════════════════
+var riderTab = "disponibles";
+var riderAvail = [];       // pedidos disponibles (sin nombre/teléfono/mapa: lo filtra la base de datos)
+var riderMine = [];        // pedidos que este rider ya tomó (con todos los datos)
+var riderPollTimer = null;
+var riderLastCount = -1;
+
+function riderBeep(){
+  try {
+    var C = window.AudioContext || window.webkitAudioContext;
+    var c = new C(), o = c.createOscillator(), g = c.createGain();
+    o.connect(g); g.connect(c.destination);
+    o.frequency.value = 880; g.gain.value = 0.15;
+    o.start();
+    setTimeout(function(){ try { o.stop(); c.close(); } catch(e){} }, 350);
+  } catch(e){}
+}
+
+function riderPhoneDigits(p){
+  var d = String(p || "").replace(/\D/g, "");
+  if(d.length === 8) d = "503" + d;   // El Salvador: números de 8 dígitos
+  return d;
+}
+function timeAgo(iso){
+  var m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if(m < 1) return "ahora";
+  if(m < 60) return "hace " + m + " min";
+  var h = Math.floor(m / 60);
+  return "hace " + h + " h " + (m % 60) + " min";
+}
+
+async function loadRiderData(){
+  if(!currentUser || !currentUser.isRider) return;
+  var a = await sb.rpc("pedidos_disponibles");
+  if(a.error){ console.error(a.error); } else { riderAvail = a.data || []; }
+  var m = await sb.from("pedidos").select("*, pedido_items(*)").eq("rider_id", currentUser.id).order("creado_en", { ascending: false });
+  if(m.error){ console.error(m.error); } else { riderMine = m.data || []; }
+  updateRiderBadge();
+}
+function updateRiderBadge(){
+  var b = document.getElementById("rider-badge");
+  if(!b) return;
+  var n = (currentUser && currentUser.isRider) ? riderAvail.length : 0;
+  b.textContent = n;
+  b.classList.toggle("hide", n === 0);
+}
+
+function startRiderPolling(){
+  stopRiderPolling();
+  if(!currentUser || !currentUser.isRider) return;
+  riderPoll();
+  riderPollTimer = setInterval(riderPoll, 15000);
+}
+function stopRiderPolling(){
+  if(riderPollTimer){ clearInterval(riderPollTimer); riderPollTimer = null; }
+  riderLastCount = -1; riderAvail = []; riderMine = [];
+  updateRiderBadge();
+}
+async function riderPoll(){
+  if(!currentUser || !currentUser.isRider) return;
+  var before = riderAvail.map(function(o){ return o.id; });
+  await loadRiderData();
+  var nuevos = riderAvail.filter(function(o){ return before.indexOf(o.id) === -1; });
+  if(riderLastCount >= 0 && nuevos.length){ riderBeep(); showToast("🏍️ Nuevo pedido disponible", "ok"); }
+  riderLastCount = riderAvail.length;
+  if(currentView === "rider") renderRider();
+}
+
+function setRiderTab(t){ riderTab = t; renderRider(); }
+
+async function riderToggleDisponible(){
+  var nv = !currentUser.riderDisponible;
+  var r = await sb.from("perfiles").update({ rider_disponible: nv }).eq("id", currentUser.id);
+  if(r.error){ showToast("No se pudo cambiar tu disponibilidad", "err"); console.error(r.error); return; }
+  currentUser.riderDisponible = nv;
+  await loadRiderData();
+  renderRider();
+  showToast(nv ? "🟢 Estás disponible" : "⚪ No recibirás pedidos nuevos", "ok");
+}
+
+function riderAvailCardHTML(o){
+  var items = (o.items || []).map(function(i){
+    return '<div style="font-size:13px;margin-bottom:3px">• ' + escapeHTML(i.nombre) + ' x' + escapeHTML(i.cantidad) + '</div>';
+  }).join("");
+  return '<div class="order-card" style="border-radius:12px;margin-bottom:12px">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
+    + '<span style="font-weight:800;font-size:15px">Pedido #' + Number(o.id) + '</span>'
+    + '<span class="pill" style="background:rgba(16,185,129,0.15);color:#10b981">Cobrar $' + parseFloat(o.total).toFixed(2) + '</span></div>'
+    + '<div style="font-size:12px;color:#94a3b8;margin-bottom:6px">🕐 ' + timeAgo(o.creado_en) + '</div>'
+    + '<div style="font-size:13px;color:#cbd5e1;margin-bottom:10px">📍 ' + escapeHTML(o.direccion) + '</div>'
+    + '<div style="background:#0f1117;border-radius:8px;padding:8px 10px;margin-bottom:12px">' + items + '</div>'
+    + '<button class="btn-rider-take" onclick="riderTomar(' + Number(o.id) + ', this)">🏍️ Yo lo llevo</button>'
+    + '</div>';
+}
+
+function riderMineCardHTML(o){
+  var est = (o.estado || "").toLowerCase().trim();
+  var items = (o.pedido_items || []).map(function(i){
+    return '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px"><span>' + escapeHTML(i.nombre_producto) + ' x' + escapeHTML(i.cantidad) + '</span></div>';
+  }).join("");
+  var tel = riderPhoneDigits(o.telefono);
+  var stateLabel = est === "en_camino" ? "🚵 En camino" : (est === "entregado" ? "✅ Entregado" : "🛠️ Por recoger");
+  var actions = "";
+  if(est === "en_preparacion"){
+    actions = '<div style="display:flex;gap:8px;margin-top:12px">'
+      + '<button class="btn-rider-go" onclick="riderCambiarEstado(' + Number(o.id) + ',\'en_camino\', this)">🚵 Salí en camino</button>'
+      + '<button class="btn-rider-drop" onclick="riderSoltar(' + Number(o.id) + ', this)">↩️ Soltar</button></div>';
+  } else if(est === "en_camino"){
+    actions = '<div style="display:flex;gap:8px;margin-top:12px">'
+      + '<button class="btn-rider-done" onclick="riderCambiarEstado(' + Number(o.id) + ',\'entregado\', this)">✅ Ya lo entregué</button></div>';
+  }
+  var contact = est === "entregado" ? "" :
+    '<div style="display:flex;gap:8px;margin-bottom:6px">'
+    + '<a class="btn-map" style="flex:1;text-align:center" href="tel:+' + tel + '">📞 Llamar</a>'
+    + '<a class="btn-map" style="flex:1;text-align:center" href="https://wa.me/' + tel + '" target="_blank" rel="noopener">💬 WhatsApp</a></div>';
+  return '<div class="order-card" style="border-radius:12px;margin-bottom:12px">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
+    + '<span style="font-weight:800;font-size:15px">#' + Number(o.id) + ' — ' + escapeHTML(o.nombre_cliente) + '</span>'
+    + '<span class="pill" style="background:rgba(59,130,246,0.15);color:#93c5fd">' + stateLabel + '</span></div>'
+    + '<div style="font-size:13px;color:#cbd5e1;margin-bottom:6px">📍 ' + escapeHTML(o.direccion) + '</div>'
+    + (o.notas ? '<div style="font-size:12px;color:#94a3b8;margin-bottom:6px">📝 ' + escapeHTML(o.notas) + '</div>' : '')
+    + (est === "entregado" ? '' : orderMapButtonHTML(o))
+    + contact
+    + '<div style="background:#0f1117;border-radius:8px;padding:8px 10px;margin:8px 0">' + items + '</div>'
+    + '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;font-weight:700;color:#94a3b8">COBRAR AL ENTREGAR</span>'
+    + '<span style="font-size:19px;font-weight:800;color:#10b981">$' + parseFloat(o.total).toFixed(2) + '</span></div>'
+    + actions + '</div>';
+}
+
+function renderRider(){
+  if(!currentUser || !currentUser.isRider) return;
+  var disp = currentUser.riderDisponible;
+  var tog = document.getElementById("rider-toggle");
+  tog.className = "rider-toggle " + (disp ? "on" : "off");
+  tog.textContent = disp ? "🟢 Disponible" : "⚪ No disponible";
+
+  var activos = riderMine.filter(function(o){ return (o.estado || "") !== "entregado"; });
+  var entregados = riderMine.filter(function(o){ return o.estado === "entregado" && !esHistorico(o); });
+
+  var td = document.getElementById("rider-tab-disp"), tm = document.getElementById("rider-tab-mis");
+  td.classList.toggle("active", riderTab === "disponibles");
+  tm.classList.toggle("active", riderTab === "mis");
+  td.textContent = "🆕 Disponibles" + (riderAvail.length ? " (" + riderAvail.length + ")" : "");
+  tm.textContent = "🏍️ Mis entregas" + (activos.length ? " (" + activos.length + ")" : "");
+  document.getElementById("rider-disponibles").classList.toggle("hide", riderTab !== "disponibles");
+  document.getElementById("rider-mis").classList.toggle("hide", riderTab !== "mis");
+
+  var elD = document.getElementById("rider-disponibles");
+  if(!disp){
+    elD.innerHTML = '<div class="empty-state"><div style="font-size:48px;margin-bottom:14px">⚪</div><div style="font-size:15px;font-weight:600">Estás en modo No disponible</div><div style="font-size:13px;color:#94a3b8;margin-top:6px">Activa «Disponible» arriba para ver y tomar pedidos.</div></div>';
+  } else if(riderAvail.length === 0){
+    elD.innerHTML = '<div class="empty-state"><div style="font-size:48px;margin-bottom:14px">🏍️</div><div style="font-size:15px;font-weight:600">No hay pedidos disponibles</div><div style="font-size:13px;color:#94a3b8;margin-top:6px">Esta pantalla se actualiza sola. Te avisaremos cuando llegue uno.</div></div>';
+  } else {
+    elD.innerHTML = riderAvail.map(riderAvailCardHTML).join("");
+  }
+
+  var elM = document.getElementById("rider-mis");
+  var html = "";
+  if(activos.length === 0){
+    html += '<div class="empty-state"><div style="font-size:48px;margin-bottom:14px">📦</div><div style="font-size:15px;font-weight:600">No tienes entregas activas</div></div>';
+  } else {
+    html += activos.map(riderMineCardHTML).join("");
+  }
+  if(entregados.length){
+    html += '<div style="font-size:12px;font-weight:700;color:#94a3b8;margin:16px 0 8px">✅ ENTREGADOS (últimas 24 h)</div>'
+      + entregados.map(riderMineCardHTML).join("");
+  }
+  elM.innerHTML = html;
+}
+
+async function riderTomar(id, btn){
+  if(btn){ btn.disabled = true; btn.textContent = "Tomando..."; }
+  var r = await sb.rpc("tomar_pedido", { p_id: id });
+  if(r.error){
+    showToast(r.error.message || "No se pudo tomar el pedido", "err");
+  } else if(r.data === true){
+    showToast("✅ Es tuyo. Mira los datos en «Mis entregas»", "ok");
+    riderTab = "mis";
+  } else {
+    showToast("Otro rider ya lo tomó", "err");
+  }
+  await loadRiderData();
+  renderRider();
+}
+async function riderSoltar(id, btn){
+  if(!confirm("¿Soltar el pedido #" + id + "? Volverá a quedar disponible para otros riders.")) return;
+  if(btn) btn.disabled = true;
+  var r = await sb.rpc("soltar_pedido", { p_id: id });
+  if(r.error){ showToast(r.error.message || "No se pudo soltar", "err"); }
+  else if(r.data === true){ showToast("Pedido liberado", "ok"); riderTab = "disponibles"; }
+  else { showToast("Ya no puedes soltar este pedido", "err"); }
+  await loadRiderData();
+  renderRider();
+}
+async function riderCambiarEstado(id, estado, btn){
+  if(estado === "entregado" && !confirm("¿Confirmas que entregaste el pedido #" + id + " y cobraste al cliente?")) return;
+  if(btn) btn.disabled = true;
+  var r = await sb.rpc("rider_cambiar_estado", { p_id: id, p_estado: estado });
+  if(r.error){ showToast(r.error.message || "No se pudo actualizar", "err"); }
+  else if(r.data === true){ showToast(estado === "entregado" ? "✅ Entrega registrada" : "🚵 ¡Buen viaje!", "ok"); }
+  else { showToast("El pedido ya cambió de estado", "err"); }
+  await loadRiderData();
+  renderRider();
+}
+
+// ── Admin: riders y asignación manual ──
+var allRiders = [];
+async function loadRiders(){
+  var r = await sb.from("perfiles").select("id,nombre,telefono,rider_disponible").eq("es_rider", true).order("nombre");
+  if(r.error){ console.error(r.error); return; }
+  allRiders = r.data || [];
+}
+function riderAssignRowHTML(o, est){
+  if(est === "entregado"){
+    return o.rider_nombre ? '<div style="font-size:12px;color:#94a3b8;margin-top:8px">🏍️ Entregó: ' + escapeHTML(o.rider_nombre) + '</div>' : '';
+  }
+  var opts = '<option value="">— Sin asignar —</option>' + allRiders.map(function(r){
+    return '<option value="' + escapeHTML(r.id) + '"' + (o.rider_id === r.id ? ' selected' : '') + '>' + escapeHTML(r.nombre) + (r.rider_disponible === false ? ' (no disponible)' : '') + '</option>';
+  }).join("");
+  // Si el rider asignado ya no es rider, se sigue mostrando su nombre
+  if(o.rider_id && !allRiders.some(function(r){ return r.id === o.rider_id; })){
+    opts += '<option value="' + escapeHTML(o.rider_id) + '" selected>' + escapeHTML(o.rider_nombre || "Rider") + '</option>';
+  }
+  var hint = o.rider_id
+    ? '<span style="font-size:11px;color:#10b981">✔ Asignado</span>'
+    : (est === "en_preparacion" ? '<span style="font-size:11px;color:#f59e0b">Esperando que un rider lo tome</span>' : '');
+  return '<div style="display:flex;align-items:center;gap:10px;background:#0f1117;padding:8px 12px;border-radius:8px;margin-top:8px">'
+    + '<span style="font-size:11px;color:#94a3b8;font-weight:700">🏍️ RIDER:</span>'
+    + '<select style="flex:1;padding:5px 8px;font-size:12px" onchange="adminAsignarRider(' + Number(o.id) + ', this.value)">' + opts + '</select>'
+    + hint + '</div>';
+}
+async function adminAsignarRider(orderId, riderId){
+  var r = await sb.rpc("admin_asignar_pedido", { p_id: orderId, p_rider: riderId || null });
+  if(r.error){ showToast(r.error.message || "No se pudo asignar", "err"); console.error(r.error); }
+  else { showToast(riderId ? "🏍️ Pedido asignado" : "Pedido sin rider", "ok"); }
+  await renderAdminPedidos();
+}
+function renderRidersList(){
+  var el = document.getElementById("riders-list");
+  if(!el) return;
+  if(allRiders.length === 0){
+    el.innerHTML = '<div class="empty-state"><div style="font-size:48px;margin-bottom:14px">🏍️</div><div style="font-size:15px;font-weight:600">Aún no hay riders</div></div>';
+    return;
+  }
+  el.innerHTML = allRiders.map(function(r){
+    var n = allOrders.filter(function(o){ return o.rider_id === r.id && o.estado !== "entregado"; }).length;
+    return '<div class="order-card" style="display:flex;align-items:center;gap:10px">'
+      + '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px">' + escapeHTML(r.nombre) + '</div>'
+      + '<div style="font-size:12px;color:#94a3b8">' + (r.rider_disponible === false ? '⚪ No disponible' : '🟢 Disponible') + ' · ' + n + ' entrega(s) activa(s)' + (r.telefono ? ' · 📞 ' + escapeHTML(r.telefono) : '') + '</div></div>'
+      + '<button onclick="adminQuitarRider(\'' + escapeHTML(r.id) + '\')" style="padding:7px 12px;border-radius:8px;border:none;background:rgba(239,68,68,0.15);color:#ef4444;font-weight:700;font-size:12px">Quitar</button>'
+      + '</div>';
+  }).join("");
+}
+async function adminAddRider(){
+  var inp = document.getElementById("rider-email");
+  var email = inp.value.trim();
+  if(!email){ showToast("Escribe el correo del rider", "err"); return; }
+  var btn = document.getElementById("btn-add-rider");
+  btn.disabled = true;
+  var r = await sb.rpc("admin_hacer_rider", { p_email: email });
+  btn.disabled = false;
+  if(r.error){ showToast(r.error.message || "No se pudo agregar", "err"); console.error(r.error); return; }
+  inp.value = "";
+  showToast("🏍️ " + r.data + " ahora es rider", "ok");
+  await renderAdminPedidos();
+}
+async function adminQuitarRider(id){
+  if(!confirm("¿Quitar el rol de rider a esta persona? Sus pedidos que aún no salen volverán a quedar disponibles.")) return;
+  var r = await sb.rpc("admin_quitar_rider", { p_id: id });
+  if(r.error){ showToast(r.error.message || "No se pudo quitar", "err"); console.error(r.error); return; }
+  showToast("Rol de rider quitado", "ok");
+  await renderAdminPedidos();
+}
+
 // ═══════════════════════════════════════════════════════════════
 // PEDIDOS — ADMIN (sección separada, Activos / Históricos)
 // ═══════════════════════════════════════════════════════════════
@@ -1901,6 +2224,7 @@ function esHistorico(o){
 async function renderAdminPedidos(){
   var { data: allO } = await sb.from("pedidos").select("*, pedido_items(*)").order("creado_en",{ascending:false});
   allOrders = allO || [];
+  await loadRiders();
   var activos = allOrders.filter(function(o){ return !esHistorico(o); });
   var historicos = allOrders.filter(esHistorico);
 
@@ -1910,14 +2234,17 @@ async function renderAdminPedidos(){
 
   renderOrders(activos);
   renderOrdersHistoricos(historicos);
+  renderRidersList();
 }
 
 function setAdminPedidosTab(tab){
   adminPedidosTab=tab;
   document.getElementById("ap-tab-activos").classList.toggle("active",tab==="activos");
   document.getElementById("ap-tab-historicos").classList.toggle("active",tab==="historicos");
+  document.getElementById("ap-tab-riders").classList.toggle("active",tab==="riders");
   document.getElementById("admin-pedidos-activos").classList.toggle("hide",tab!=="activos");
   document.getElementById("admin-pedidos-historicos").classList.toggle("hide",tab!=="historicos");
+  document.getElementById("admin-pedidos-riders").classList.toggle("hide",tab!=="riders");
 }
 
 function renderInvGrid(){
@@ -1959,7 +2286,9 @@ function renderOrders(lista){
       +'<option value="en_camino" '+(est==="en_camino"||est==="en camino"?"selected":"")+'>🚵 En Camino</option>'
       +'<option value="entregado" '+(est==="entregado"?"selected":"")+'>✅ Entregado</option>'
       +'</select>'
-      +'</div></div>';
+      +'</div>'
+      + riderAssignRowHTML(o, est)
+      +'</div>';
   }).join("");
 }
 
@@ -1993,7 +2322,7 @@ function renderOrdersHistoricos(lista){
       +'</div>'
       +'<div style="font-size:12px;color:#94a3b8;margin-bottom:6px">📍 '+escapeHTML(o.direccion||o.address||"")+' · 📞 '+escapeHTML(o.telefono)+'</div>'
       + orderMapButtonHTML(o)
-      +'<div style="font-size:12px;color:#94a3b8;margin-bottom:10px">✅ Entregado: '+new Date(o.entregado_en).toLocaleString("es")+' · '+items.length+' producto(s)</div>'
+      +'<div style="font-size:12px;color:#94a3b8;margin-bottom:10px">✅ Entregado: '+new Date(o.entregado_en).toLocaleString("es")+' · '+items.length+' producto(s)'+(o.rider_nombre?' · 🏍️ '+escapeHTML(o.rider_nombre):'')+'</div>'
       +'<button onclick="deleteOrder('+o.id+')" style="width:100%;padding:8px 0;border-radius:8px;border:none;background:rgba(239,68,68,0.15);color:#ef4444;font-weight:700;font-size:12px">🗑️ Eliminar definitivamente</button>'
       +'</div></div></div>';
   }).join("");
