@@ -161,6 +161,9 @@ label.lbl{font-size:11px;color:#94a3b8;display:block;margin-bottom:4px;font-weig
 .btn-add-addr{width:100%;padding:10px 0;border-radius:8px;border:1px dashed #f59e0b;background:transparent;color:#f59e0b;font-weight:700;font-size:13px}
 .new-addr-box{background:#0f1117;border:1px solid #2e3350;border-radius:10px;padding:12px;margin-top:10px}
 .loc-missing{outline:2px solid #ef4444;outline-offset:6px;border-radius:10px}
+.sum-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#cbd5e1;margin-bottom:6px}
+.sum-row.total{border-top:1px solid #2e3350;padding-top:10px;margin-top:8px;margin-bottom:0;font-weight:800;color:#f1f5f9;font-size:14px}
+.coverage-warning{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.55);color:#fbbf24;border-radius:10px;padding:12px 14px;font-size:13px;margin-bottom:14px;line-height:1.5}
 .rider-toggle{padding:8px 12px;border-radius:20px;border:1px solid #2e3350;font-weight:700;font-size:12px;background:#1a1d27;white-space:nowrap}
 .rider-toggle.on{color:#10b981;border-color:rgba(16,185,129,.5);background:rgba(16,185,129,.1)}
 .rider-toggle.off{color:#94a3b8}
@@ -238,9 +241,10 @@ label.lbl{font-size:11px;color:#94a3b8;display:block;margin-bottom:4px;font-weig
     <div id="cart-step-0">
       <div id="cart-items"></div>
       <div id="cart-total-box" class="cart-total-box hide">
-        <div><div class="total-label">TOTAL</div><div class="total-val" id="cart-total-val">$0.00</div></div>
+        <div><div class="total-label">SUBTOTAL</div><div class="total-val" id="cart-total-val">$0.00</div></div>
         <button class="btn-primary" onclick="goCheckout()">Continuar →</button>
       </div>
+      <div id="cart-fee-note" class="hide" style="font-size:12px;color:#94a3b8;margin-top:10px;line-height:1.5"></div>
       <div id="cart-empty" class="empty-state">
         <div style="font-size:56px;margin-bottom:14px">🛒</div>
         <div style="font-size:15px;font-weight:600;margin-bottom:14px">Tu carrito está vacío</div>
@@ -263,7 +267,9 @@ label.lbl{font-size:11px;color:#94a3b8;display:block;margin-bottom:4px;font-weig
           <button type="button" class="btn-add-addr" id="btn-toggle-new" onclick="toggleNewAddrForm()">➕ Agregar dirección nueva</button>
           <div id="new-addr-box" class="new-addr-box hide">
             <label class="lbl">Dirección nueva *</label>
-            <input id="new-addr-text" placeholder="Colonia, calle, casa..."/>
+            <input id="new-addr-text" placeholder="Colonia, calle, casa..." oninput="updateCheckoutSummary()"/>
+            <label class="lbl" style="margin-top:12px">Municipio o distrito *</label>
+            <select id="new-addr-muni" onchange="updateCheckoutSummary()"></select>
             <label class="lbl" style="margin-top:12px">Ubicación de esta dirección * (obligatoria)</label>
             <div id="new-loc-status" style="font-size:12px;margin-bottom:8px"></div>
             <button type="button" class="btn-gps" id="btn-new-gps" onclick="captureNewLocation()">📍 Compartir mi ubicación actual</button>
@@ -279,9 +285,13 @@ label.lbl{font-size:11px;color:#94a3b8;display:block;margin-bottom:4px;font-weig
         
 <div class="info-row"><label class="lbl">Notas adicionales</label><input id="info-notes" placeholder="Referencias, horario..."/></div>
       </div>
-      <div class="cart-total-box" style="margin-bottom:14px">
-        <span class="total-val" id="checkout-total">$0.00</span>
-        <span class="pill" style="background:rgba(16,185,129,0.15);color:#10b981">Pago contra entrega</span>
+      <div id="coverage-warning" class="coverage-warning hide"></div>
+      <div class="form-card" id="checkout-summary" style="margin-bottom:14px">
+        <div class="sum-row"><span>Productos</span><span id="sum-subtotal">$0.00</span></div>
+        <div class="sum-row"><span id="sum-envio-label">Envío</span><span id="sum-envio">—</span></div>
+        <div class="sum-row"><span>Cargo por servicio</span><span id="sum-servicio">$0.00</span></div>
+        <div class="sum-row total"><span>TOTAL</span><span class="total-val" id="checkout-total">$0.00</span></div>
+        <div style="margin-top:10px"><span class="pill" style="background:rgba(16,185,129,0.15);color:#10b981">Pago contra entrega</span></div>
       </div>
       <div style="display:flex;gap:8px">
         <button class="btn-secondary" onclick="setCheckoutStep(0)">← Volver</button>
@@ -314,6 +324,7 @@ label.lbl{font-size:11px;color:#94a3b8;display:block;margin-bottom:4px;font-weig
         <div id="addr-form-title" style="font-size:13px;font-weight:700;color:#f59e0b;margin-bottom:10px">Nueva dirección</div>
         <div class="info-row"><label class="lbl">Nombre de la dirección *</label><input id="addr-label" placeholder="Casa, Trabajo, Casa de mamá..."/></div>
         <div class="info-row"><label class="lbl">Dirección *</label><input id="addr-text" placeholder="Colonia, calle, número de casa..."/></div>
+        <div class="info-row"><label class="lbl">Municipio o distrito *</label><select id="addr-muni"></select></div>
         <div class="info-row"><label class="lbl">Referencias para el rider</label><input id="addr-ref" placeholder="Portón verde, frente a la tienda..."/></div>
         <div class="info-row">
           <label class="lbl">Ubicación en el mapa</label>
@@ -428,6 +439,7 @@ label.lbl{font-size:11px;color:#94a3b8;display:block;margin-bottom:4px;font-weig
       <button class="filter-btn active" id="ap-tab-activos" onclick="setAdminPedidosTab('activos')">🔥 Activos</button>
       <button class="filter-btn" id="ap-tab-historicos" onclick="setAdminPedidosTab('historicos')">🗄️ Históricos</button>
       <button class="filter-btn" id="ap-tab-riders" onclick="setAdminPedidosTab('riders')">🏍️ Riders</button>
+      <button class="filter-btn" id="ap-tab-cobertura" onclick="setAdminPedidosTab('cobertura')">📍 Cobertura</button>
     </div>
     <div id="admin-pedidos-activos">
       <div id="orders-section" class="form-card" style="padding:0;overflow:hidden">
@@ -455,6 +467,33 @@ label.lbl{font-size:11px;color:#94a3b8;display:block;margin-bottom:4px;font-weig
         <button class="btn-primary" id="btn-add-rider" style="width:100%;margin-top:10px" onclick="adminAddRider()">➕ Agregar rider</button>
       </div>
       <div id="riders-list"></div>
+    </div>
+    <div id="admin-pedidos-cobertura" class="hide">
+      <div class="form-card" style="margin-bottom:14px">
+        <div class="form-title">💵 Cargo por servicio</div>
+        <div style="display:flex;gap:8px">
+          <input id="cov-fee" type="number" step="0.01" min="0" style="flex:1" placeholder="0.15"/>
+          <button class="btn-primary" onclick="adminSaveServiceFee()">Guardar</button>
+        </div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:6px">Se suma a cada pedido, además del costo de envío.</div>
+      </div>
+      <div class="form-card" style="margin-bottom:14px">
+        <div class="form-title">📍 Zonas de cobertura y costo de envío</div>
+        <div class="tip-banner" style="margin-bottom:12px">Solo se aceptan pedidos de las zonas <strong>activas</strong>. Quien esté en otra zona verá el aviso de que aún no llegamos a su hogar. Los cambios se guardan al instante.</div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <input id="cov-all" type="number" step="0.25" min="0" style="flex:1" placeholder="Costo para todas"/>
+          <button class="btn-secondary" onclick="adminSetAllPrices()">Aplicar a todas</button>
+        </div>
+        <div id="cov-list"></div>
+        <div style="border-top:1px solid #2e3350;margin-top:12px;padding-top:12px">
+          <label class="lbl">Agregar zona nueva</label>
+          <div style="display:flex;gap:8px">
+            <input id="cov-new-name" placeholder="Ej. Santa Ana" style="flex:2"/>
+            <input id="cov-new-price" type="number" step="0.25" min="0" placeholder="2.00" style="flex:1"/>
+          </div>
+          <button class="btn-primary" style="width:100%;margin-top:8px" onclick="adminAddZone()">➕ Agregar zona</button>
+        </div>
+      </div>
     </div>
   </div>
 </main>
@@ -621,6 +660,7 @@ async function initApp() {
 
   try {
     await loadProducts();
+    await loadCoverage();
 
     if (isRecoveryLink) {
       var { data, error } = await sb.auth.setSession({
@@ -788,6 +828,7 @@ async function sendHelpRequest(){
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "apikey": SUPABASE_ANON_KEY,
         "Authorization": "Bearer " + (session ? session.access_token : SUPABASE_ANON_KEY)
       },
       body: JSON.stringify({ nombre: nombre, email: currentUser.email, telefono: contacto, mensaje: mensaje })
@@ -1049,7 +1090,7 @@ function showToast(msg,type){
   var t=document.getElementById("toast");
   t.textContent=msg; t.style.background=type==="err"?"#ef4444":"#10b981";
   t.classList.remove("hide"); clearTimeout(toastTimer);
-  toastTimer=setTimeout(function(){ t.classList.add("hide"); },2500);
+  toastTimer=setTimeout(function(){ t.classList.add("hide"); },Math.max(2500,Math.min(7000,String(msg).length*55)));
 }
 function closeOverlay(e,id){ if(e.target===e.currentTarget) document.getElementById(id).classList.add("hide"); }
 
@@ -1125,11 +1166,15 @@ function addToCart(p){
 function renderCart(){
   var n=cartCount();
   document.getElementById("cart-empty").classList.toggle("hide",n>0);
+  if(n===0) document.getElementById("cart-fee-note").classList.add("hide");
   document.getElementById("cart-total-box").classList.toggle("hide",n===0);
   document.getElementById("cart-step-0").classList.remove("hide");
   document.getElementById("cart-step-1").classList.add("hide");
   if(n===0){ document.getElementById("cart-items").innerHTML=""; return; }
   document.getElementById("cart-total-val").textContent="$"+cartTotal().toFixed(2);
+  var note=document.getElementById("cart-fee-note");
+  note.textContent="Al finalizar se suma el envío (desde "+money(minShipping())+", según tu zona) y un cargo por servicio de "+money(serviceFee)+".";
+  note.classList.remove("hide");
   document.getElementById("cart-items").innerHTML=cart.map(function(item){
     return '<div class="cart-item"><div class="thumb">'+thumbHTML(item,52)+'</div>'
       +'<div style="flex:1"><div style="font-weight:700;font-size:13px">'+item.name+'</div><div style="font-size:11px;color:#94a3b8">$'+item.price.toFixed(2)+' / '+item.unit+'</div></div>'
@@ -1146,8 +1191,193 @@ function updateQty(id,d){
 function setCheckoutStep(s){
   document.getElementById("cart-step-0").classList.toggle("hide",s===1);
   document.getElementById("cart-step-1").classList.toggle("hide",s===0);
-  if(s===1) document.getElementById("checkout-total").textContent="$"+cartTotal().toFixed(2);
+  if(s===1) updateCheckoutSummary();
 }
+
+// ═══════════════════════════════════════════════════════════════
+// COBERTURA, COSTO DE ENVÍO Y CARGO POR SERVICIO
+// ═══════════════════════════════════════════════════════════════
+var COVERAGE_MSG = "Por ahora no llegamos hasta tu hogar, pero pronto estaremos cerca de ti 💛";
+var OTHER_MUNI = "Otro";
+var DEFAULT_SERVICE_FEE = 0.15;
+var DEFAULT_SHIPPING = 2.00;
+// Respaldo por si aún no existe la tabla en Supabase (se usa solo si la consulta falla)
+var DEFAULT_ZONE_NAMES = ["San Salvador","Ayutuxtepeque","Mejicanos","Cuscatancingo","Ciudad Delgado","Apopa","Nejapa","Ilopango","San Martín","Soyapango","Tonacatepeque","San Marcos","Panchimalco","Rosario de Mora","Santiago Texacuangos","Santo Tomás","Antiguo Cuscatlán","Huizúcar","Nuevo Cuscatlán","San José Villanueva","Zaragoza","Santa Tecla","Comasagua"];
+var zones = [];                 // { municipio, activa, costo_envio, orden }
+var serviceFee = DEFAULT_SERVICE_FEE;
+
+function round2(n){ return Math.round(Number(n) * 100) / 100; }
+function money(n){ return "$" + Number(n).toFixed(2); }
+
+async function loadCoverage(){
+  var z = await sb.from("zonas_cobertura").select("*").order("orden").order("municipio");
+  if(z.error){
+    console.error("No se pudieron cargar las zonas; se usan las predeterminadas:", z.error);
+    zones = DEFAULT_ZONE_NAMES.map(function(n, i){ return { municipio: n, activa: true, costo_envio: DEFAULT_SHIPPING, orden: i }; });
+  } else {
+    zones = (z.data || []).map(function(r){
+      return { municipio: r.municipio, activa: r.activa !== false, costo_envio: parseFloat(r.costo_envio), orden: r.orden || 0 };
+    });
+  }
+  var c = await sb.from("configuracion").select("*");
+  if(!c.error){
+    var row = (c.data || []).find(function(r){ return r.clave === "cargo_servicio"; });
+    serviceFee = row ? parseFloat(row.valor) : DEFAULT_SERVICE_FEE;
+  }
+}
+function zoneFor(muni){
+  if(!muni) return null;
+  return zones.find(function(z){ return z.activa && z.municipio === muni; }) || null;
+}
+function minShipping(){
+  var act = zones.filter(function(z){ return z.activa; });
+  if(!act.length) return DEFAULT_SHIPPING;
+  return Math.min.apply(null, act.map(function(z){ return z.costo_envio; }));
+}
+function feeBreakdown(muni){
+  var sub = round2(cartTotal());
+  var z = zoneFor(muni);
+  if(!z) return { subtotal: sub, covered: false, envio: null, servicio: serviceFee, total: null };
+  return { subtotal: sub, covered: true, envio: z.costo_envio, servicio: serviceFee, total: round2(sub + z.costo_envio + serviceFee) };
+}
+function muniOptionsHTML(selected){
+  var h = '<option value="">Selecciona tu municipio o distrito...</option>';
+  zones.filter(function(z){ return z.activa; }).forEach(function(z){
+    h += '<option value="' + escapeHTML(z.municipio) + '"' + (selected === z.municipio ? ' selected' : '') + '>' + escapeHTML(z.municipio) + '</option>';
+  });
+  if(selected && selected !== OTHER_MUNI && !zoneFor(selected)){
+    h += '<option value="' + escapeHTML(selected) + '" selected>' + escapeHTML(selected) + ' (fuera de cobertura)</option>';
+  }
+  h += '<option value="' + OTHER_MUNI + '"' + (selected === OTHER_MUNI ? ' selected' : '') + '>Otro lugar (fuera de la zona de cobertura)</option>';
+  return h;
+}
+function renderMuniSelect(id, selected){
+  var sel = document.getElementById(id);
+  if(!sel) return;
+  var cur = (selected !== undefined) ? selected : sel.value;
+  sel.innerHTML = muniOptionsHTML(cur);
+}
+
+// Municipio con el que saldría el pedido ahora mismo (dirección nueva en curso o la elegida)
+function effectiveMuni(){
+  if(newAddrDirty()) return document.getElementById("new-addr-muni").value || null;
+  var a = getSelectedAddress();
+  return a ? (a.municipio || null) : null;
+}
+function updateCheckoutSummary(){
+  var muni = effectiveMuni();
+  var f = feeBreakdown(muni);
+  document.getElementById("sum-subtotal").textContent = money(f.subtotal);
+  document.getElementById("sum-servicio").textContent = money(f.servicio);
+  document.getElementById("sum-envio-label").textContent = f.covered ? "Envío · " + muni : "Envío";
+  var warn = document.getElementById("coverage-warning");
+  if(f.covered){
+    document.getElementById("sum-envio").textContent = money(f.envio);
+    document.getElementById("checkout-total").textContent = money(f.total);
+    warn.classList.add("hide");
+  } else if(muni){
+    document.getElementById("sum-envio").textContent = "No disponible";
+    document.getElementById("checkout-total").textContent = "—";
+    warn.textContent = COVERAGE_MSG;
+    warn.classList.remove("hide");
+  } else {
+    document.getElementById("sum-envio").textContent = "según tu zona";
+    document.getElementById("checkout-total").textContent = money(f.subtotal + f.servicio) + " + envío";
+    warn.classList.add("hide");
+  }
+}
+function selectedMuniHTML(a){
+  var z = zoneFor(a.municipio);
+  if(a.municipio && z){
+    return '<div style="font-size:12px;color:#cbd5e1;margin-top:6px">🗺️ ' + escapeHTML(a.municipio) + ' · Envío ' + money(z.costo_envio) + '</div>';
+  }
+  var msg = a.municipio
+    ? '⚠️ ' + escapeHTML(a.municipio === OTHER_MUNI ? 'Fuera de la zona de cobertura' : a.municipio + ' (fuera de cobertura)') + '. Si es un error, corrige el municipio:'
+    : '⚠️ Falta el municipio o distrito de esta dirección. Elígelo para calcular el envío:';
+  return '<div style="font-size:12px;color:#f59e0b;margin:6px 0 6px">' + msg + '</div>'
+    + '<select id="sel-muni" onchange="setSelectedMuni(this.value)">' + muniOptionsHTML(a.municipio || "") + '</select>';
+}
+async function setSelectedMuni(value){
+  var a = getSelectedAddress();
+  if(!a || !value) return;
+  var res = await sb.from("direcciones").update({ municipio: value }).eq("id", a.id);
+  if(res.error){ showToast("No se pudo guardar el municipio", "err"); console.error(res.error); return; }
+  await loadMyAddresses();
+  selectCheckoutAddress(a.id);
+  if(!zoneFor(value)) showToast("Por ahora no llegamos a esa zona", "err");
+}
+
+// ── Admin: cobertura ──
+function renderCoverageAdmin(){
+  var list = document.getElementById("cov-list");
+  if(!list) return;
+  document.getElementById("cov-fee").value = Number(serviceFee).toFixed(2);
+  list.innerHTML = zones.map(function(z, i){
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #2e3350">'
+      + '<label style="flex:1;display:flex;align-items:center;gap:8px;font-size:13px;min-width:0">'
+      + '<input type="checkbox" ' + (z.activa ? 'checked' : '') + ' onchange="adminToggleZone(' + i + ', this.checked)" style="width:18px;height:18px;accent-color:#f59e0b;flex-shrink:0"/>'
+      + '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:' + (z.activa ? '#f1f5f9' : '#64748b') + '">' + escapeHTML(z.municipio) + '</span></label>'
+      + '<span style="font-size:12px;color:#94a3b8">$</span>'
+      + '<input type="number" step="0.25" min="0" value="' + Number(z.costo_envio).toFixed(2) + '" onchange="adminSetZonePrice(' + i + ', this.value)" style="width:78px;padding:6px 8px;font-size:13px"/>'
+      + '</div>';
+  }).join("");
+}
+async function adminCoverageRefresh(){
+  await loadCoverage();
+  renderCoverageAdmin();
+}
+async function adminSaveServiceFee(){
+  var v = parseFloat(document.getElementById("cov-fee").value);
+  if(isNaN(v) || v < 0){ showToast("Escribe un monto válido", "err"); return; }
+  v = round2(v);
+  var r = await sb.from("configuracion").update({ valor: v }).eq("clave", "cargo_servicio");
+  if(r.error){ showToast("No se pudo guardar el cargo", "err"); console.error(r.error); return; }
+  showToast("💵 Cargo por servicio: " + money(v), "ok");
+  await adminCoverageRefresh();
+}
+async function adminToggleZone(i, activa){
+  var z = zones[i]; if(!z) return;
+  var r = await sb.from("zonas_cobertura").update({ activa: activa }).eq("municipio", z.municipio);
+  if(r.error){ showToast("No se pudo cambiar la zona", "err"); console.error(r.error); }
+  else showToast((activa ? "✅ Activada: " : "⏸️ Desactivada: ") + z.municipio, "ok");
+  await adminCoverageRefresh();
+}
+async function adminSetZonePrice(i, value){
+  var z = zones[i]; if(!z) return;
+  var v = parseFloat(value);
+  if(isNaN(v) || v < 0){ showToast("Costo no válido", "err"); renderCoverageAdmin(); return; }
+  v = round2(v);
+  var r = await sb.from("zonas_cobertura").update({ costo_envio: v }).eq("municipio", z.municipio);
+  if(r.error){ showToast("No se pudo guardar el costo", "err"); console.error(r.error); }
+  else showToast(z.municipio + ": envío " + money(v), "ok");
+  await adminCoverageRefresh();
+}
+async function adminSetAllPrices(){
+  var v = parseFloat(document.getElementById("cov-all").value);
+  if(isNaN(v) || v < 0){ showToast("Escribe un costo válido", "err"); return; }
+  v = round2(v);
+  var r = await sb.from("zonas_cobertura").update({ costo_envio: v }).neq("municipio", "");
+  if(r.error){ showToast("No se pudo aplicar el costo", "err"); console.error(r.error); return; }
+  document.getElementById("cov-all").value = "";
+  showToast("Envío de " + money(v) + " en todas las zonas", "ok");
+  await adminCoverageRefresh();
+}
+async function adminAddZone(){
+  var name = document.getElementById("cov-new-name").value.trim();
+  var v = parseFloat(document.getElementById("cov-new-price").value);
+  if(!name){ showToast("Escribe el nombre de la zona", "err"); return; }
+  if(isNaN(v) || v < 0) v = DEFAULT_SHIPPING;
+  var orden = zones.reduce(function(m, z){ return Math.max(m, z.orden || 0); }, 0) + 1;
+  var r = await sb.from("zonas_cobertura").insert({ municipio: name, activa: true, costo_envio: round2(v), orden: orden });
+  if(r.error){
+    showToast(/duplicate|unique|already/i.test(r.error.message || "") ? "Esa zona ya existe" : "No se pudo agregar la zona", "err");
+    console.error(r.error); return;
+  }
+  document.getElementById("cov-new-name").value = ""; document.getElementById("cov-new-price").value = "";
+  showToast("📍 Zona agregada: " + name, "ok");
+  await adminCoverageRefresh();
+}
+
 // ═══════════════════════════════════════════════════════════════
 // UBICACIONES — direcciones guardadas + mapa para el rider
 // ═══════════════════════════════════════════════════════════════
@@ -1233,6 +1463,9 @@ function renderAddrList(){
       + (a.es_predeterminada ? '<span class="pill" style="background:rgba(245,158,11,0.15);color:#f59e0b">Predeterminada</span>' : '')
       + '</div>'
       + '<div style="font-size:12px;color:#94a3b8;margin:4px 0">' + escapeHTML(a.direccion) + '</div>'
+      + (a.municipio
+          ? '<div style="font-size:12px;margin-bottom:4px;color:' + (zoneFor(a.municipio) ? '#cbd5e1' : '#f59e0b') + '">🗺️ ' + escapeHTML(a.municipio === OTHER_MUNI ? 'Fuera de la zona de cobertura' : a.municipio) + (zoneFor(a.municipio) ? '' : ' · fuera de cobertura') + '</div>'
+          : '<div style="font-size:12px;margin-bottom:4px;color:#f59e0b">⚠️ Falta el municipio (edítala para completarlo)</div>')
       + (a.referencia ? '<div style="font-size:12px;color:#94a3b8;margin-bottom:4px">🏠 ' + escapeHTML(a.referencia) + '</div>' : '')
       + '<div style="font-size:11px;margin-bottom:8px;color:' + (hasLoc ? '#10b981' : '#f59e0b') + '">' + (hasLoc ? '📍 Ubicación guardada' : '⚠️ Sin ubicación: se te pedirá al hacer un pedido') + '</div>'
       + '<div style="display:flex;gap:6px;flex-wrap:wrap">'
@@ -1258,6 +1491,7 @@ function openAddrForm(id){
   addrDraft = a ? { lat: a.latitud, lng: a.longitud, acc: null } : { lat: null, lng: null, acc: null };
   document.getElementById("addr-label").value = a ? a.etiqueta : "";
   document.getElementById("addr-text").value = a ? a.direccion : "";
+  renderMuniSelect("addr-muni", a ? (a.municipio || "") : "");
   document.getElementById("addr-ref").value = a ? (a.referencia || "") : "";
   document.getElementById("addr-paste").value = "";
   document.getElementById("addr-err").textContent = "";
@@ -1302,6 +1536,9 @@ async function saveAddress(){
   var ref = document.getElementById("addr-ref").value.trim();
   var err = document.getElementById("addr-err");
   if(!label || !text){ err.textContent = "Escribe un nombre y la dirección"; return; }
+  var muni = document.getElementById("addr-muni").value;
+  if(!muni){ err.textContent = "Elige el municipio o distrito"; return; }
+  if(!zoneFor(muni)){ err.textContent = COVERAGE_MSG; return; }
   var dup = myAddresses.some(function(x){ return x.id !== editingAddrId && normAddr(x.direccion) === normAddr(text); });
   if(dup){ err.textContent = "Ya tienes guardada esa dirección"; return; }
   if(editingAddrId == null && myAddresses.length >= MAX_ADDR){
@@ -1310,7 +1547,7 @@ async function saveAddress(){
   err.textContent = "";
   var btn = document.getElementById("btn-addr-save");
   btn.disabled = true;
-  var payload = { etiqueta: label, direccion: text, referencia: ref || null, latitud: addrDraft.lat, longitud: addrDraft.lng };
+  var payload = { etiqueta: label, direccion: text, referencia: ref || null, latitud: addrDraft.lat, longitud: addrDraft.lng, municipio: muni };
   var res, editando = editingAddrId != null;
   if(editando){
     res = await sb.from("direcciones").update(payload).eq("id", editingAddrId);
@@ -1379,6 +1616,7 @@ function flashEl(id){
 
 // 1) La dirección elegida: una sola tarjeta con SU ubicación
 function renderCheckoutSelected(){
+  updateCheckoutSummary();
   var el = document.getElementById("checkout-selected");
   var manage = document.getElementById("checkout-manage-link");
   if(manage) manage.classList.toggle("hide", myAddresses.length === 0);
@@ -1397,6 +1635,7 @@ function renderCheckoutSelected(){
     + '</div>'
     + '<div style="font-size:13px;color:#cbd5e1;margin-top:4px">' + escapeHTML(a.direccion) + '</div>'
     + (a.referencia ? '<div style="font-size:12px;color:#94a3b8;margin-top:3px">🏠 ' + escapeHTML(a.referencia) + '</div>' : '');
+  html += selectedMuniHTML(a);
   if(hasLoc){
     html += '<div style="font-size:12px;margin-top:6px"><span style="color:#10b981">✅ Ubicación lista</span> · '
       + '<a href="' + mapsUrl(a.latitud, a.longitud) + '" target="_blank" rel="noopener" style="color:#93c5fd">verificar</a></div>';
@@ -1428,7 +1667,7 @@ function renderCheckoutPicker(){
         + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
         + '<span style="font-weight:700;font-size:13px">' + (sel ? '● ' : '○ ') + escapeHTML(a.etiqueta) + '</span>'
         + (addrHasLoc(a) ? '<span style="font-size:11px;color:#10b981">📍 con mapa</span>' : '<span style="font-size:11px;color:#f59e0b">⚠️ sin mapa</span>')
-        + '</div><div style="font-size:12px;color:#94a3b8;margin-top:3px">' + escapeHTML(a.direccion) + '</div></div>';
+        + '</div><div style="font-size:12px;color:#94a3b8;margin-top:3px">' + escapeHTML(a.direccion) + (a.municipio ? ' · ' + escapeHTML(a.municipio) : '') + '</div></div>';
     }).join("");
 }
 function chooseCheckoutAddress(id){ selectCheckoutAddress(id); toggleCheckoutPicker(false); }
@@ -1481,9 +1720,10 @@ function clearNewAddrForm(){
   ["new-addr-text", "new-paste", "new-addr-label"].forEach(function(id){
     var e = document.getElementById(id); if(e) e.value = "";
   });
+  renderMuniSelect("new-addr-muni", "");
 }
 function newAddrDirty(){
-  return !!document.getElementById("new-addr-text").value.trim() || !!newAddrLoc;
+  return !!document.getElementById("new-addr-text").value.trim() || !!newAddrLoc || !!document.getElementById("new-addr-muni").value;
 }
 function setNewAddrFormOpen(open){
   document.getElementById("new-addr-box").classList.toggle("hide", !open);
@@ -1507,6 +1747,8 @@ function updateNewAddrUI(){
   }
   document.getElementById("btn-new-gps").textContent = newAddrLoc ? "📍 Actualizar mi ubicación actual" : "📍 Compartir mi ubicación actual";
   renderNewLabelChips();
+  renderMuniSelect("new-addr-muni");
+  updateCheckoutSummary();
   var full = myAddresses.length >= MAX_ADDR;
   document.getElementById("btn-new-save").disabled = full;
   document.getElementById("new-addr-note").textContent = full
@@ -1563,6 +1805,14 @@ async function saveNewAddress(){
   if(!currentUser){ openAuth("login"); return null; }
   var text = document.getElementById("new-addr-text").value.trim();
   if(!text){ showToast("Escribe la dirección", "err"); return null; }
+  var muni = document.getElementById("new-addr-muni").value;
+  if(!muni){ showToast("Elige el municipio o distrito", "err"); flashEl("new-addr-muni"); return null; }
+  if(!zoneFor(muni)){
+    updateCheckoutSummary();
+    showToast("Por ahora no llegamos a tu zona", "err");
+    flashEl("coverage-warning");
+    return null;
+  }
   if(!newAddrLoc){ showToast("Agrega la ubicación en el mapa para guardar la dirección", "err"); return null; }
   var key = normAddr(text);
   var existing = myAddresses.find(function(x){ return normAddr(x.direccion) === key; });
@@ -1570,12 +1820,15 @@ async function saveNewAddress(){
   btn.disabled = true;
   try {
     if(existing){
-      // Ya existe: no se crea otra fila. Si le faltaba la ubicación, se completa.
-      if(!addrHasLoc(existing)){
-        var up = await sb.from("direcciones").update({ latitud: newAddrLoc.lat, longitud: newAddrLoc.lng }).eq("id", existing.id);
+      // Ya existe: no se crea otra fila. Se completa lo que le faltaba (ubicación / municipio).
+      var patch = {};
+      if(!addrHasLoc(existing)){ patch.latitud = newAddrLoc.lat; patch.longitud = newAddrLoc.lng; }
+      if(existing.municipio !== muni) patch.municipio = muni;
+      if(Object.keys(patch).length){
+        var up = await sb.from("direcciones").update(patch).eq("id", existing.id);
         if(up.error){ showToast("No se pudo guardar", "err"); console.error(up.error); return null; }
         await loadMyAddresses();
-        showToast("📍 Ubicación agregada a «" + existing.etiqueta + "»", "ok");
+        showToast("✅ «" + existing.etiqueta + "» actualizada y elegida para este pedido", "ok");
       } else {
         showToast("Esa dirección ya estaba guardada; se eligió para este pedido", "ok");
       }
@@ -1588,7 +1841,7 @@ async function saveNewAddress(){
     }
     var lbl = newChosenLabel() || (myAddresses.length === 0 ? "Casa" : "Dirección " + (myAddresses.length + 1));
     var ins = await sb.from("direcciones").insert({
-      usuario_id: currentUser.id, etiqueta: lbl, direccion: text,
+      usuario_id: currentUser.id, etiqueta: lbl, direccion: text, municipio: muni,
       latitud: newAddrLoc.lat, longitud: newAddrLoc.lng,
       es_predeterminada: myAddresses.length === 0
     }).select().single();
@@ -1608,8 +1861,9 @@ function finishNewAddress(id){
   document.getElementById("checkout-selected").scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
-function goCheckout(){
+async function goCheckout(){
   if(!currentUser){ openAuth("login"); showToast("Inicia sesión para continuar tu compra","err"); return; }
+  await loadCoverage();   // trae el costo de envío y el cargo por servicio vigentes
   document.getElementById("info-name").value = currentUser.name || "";
   document.getElementById("info-phone").value = currentUser.phone || "";
   clearNewAddrForm(); toggleCheckoutPicker(false);
@@ -1633,8 +1887,8 @@ async function placeOrder() {
   // Si el cliente dejó una dirección NUEVA escrita sin guardar, se guarda y se usa:
   // así el pedido nunca sale hacia la dirección equivocada.
   if (newAddrDirty()) {
-    if (!document.getElementById("new-addr-text").value.trim() || !newAddrLoc) {
-      showToast("Termina tu dirección nueva (dirección y ubicación) o ciérrala con «Cancelar»", "err");
+    if (!document.getElementById("new-addr-text").value.trim() || !newAddrLoc || !document.getElementById("new-addr-muni").value) {
+      showToast("Termina tu dirección nueva (dirección, municipio y ubicación) o ciérrala con «Cancelar»", "err");
       flashEl("new-addr-box");
       return;
     }
@@ -1664,52 +1918,64 @@ async function placeOrder() {
     return;
   }
 
+  // Cobertura: solo se entrega en las zonas activas
+  var muni = effectiveMuni();
+  if (!muni) {
+    showToast("Elige el municipio o distrito de tu dirección", "err");
+    flashEl("checkout-selected");
+    return;
+  }
+  var fee = feeBreakdown(muni);
+  if (!fee.covered) {
+    updateCheckoutSummary();
+    showToast("Por ahora no llegamos a tu zona", "err");
+    flashEl("coverage-warning");
+    return;
+  }
+
   var btn = document.getElementById("btn-confirm-order");
   btn.disabled = true; 
   btn.textContent = "Procesando...";
 
-  var orderData = {
-    usuario_id: currentUser ? currentUser.id : null,
-    nombre_cliente: name,
-    telefono: phone,
-    direccion: address,
-    notas: notes,
-    total: cartTotal(),
-    estado: "pendiente",
-    latitud: checkoutLoc ? checkoutLoc.lat : null,
-    longitud: checkoutLoc ? checkoutLoc.lng : null
-  };
-  var orderMapUrl = checkoutLoc ? mapsUrl(checkoutLoc.lat, checkoutLoc.lng) : "";
+  var orderMapUrl = mapsUrl(checkoutLoc.lat, checkoutLoc.lng);
 
-  var pedRes = await sb.from("pedidos").insert(orderData).select().single();
-  // Si la base aún no tiene las columnas de ubicación, el pedido se guarda igual (sin mapa)
-  if(pedRes.error && /latitud|longitud/i.test(pedRes.error.message || "")){
-    delete orderData.latitud; delete orderData.longitud;
-    pedRes = await sb.from("pedidos").insert(orderData).select().single();
-  }
-  var pedido = pedRes.data, pedidoErr = pedRes.error;
-
-  if (pedidoErr) { 
-    showToast(/ubicaci[oó]n de entrega/i.test(pedidoErr.message || "") ? "Agrega la ubicación de entrega para continuar" : "Error al crear el pedido", "err"); 
-    console.error(pedidoErr); 
-    btn.disabled = false; 
-    btn.textContent = "Confirmar Pedido ✅"; 
-    return; 
-  }
-
-  var items = cart.map(function(i) { 
-    return { 
-      pedido_id: pedido.id, 
-      producto_id: i.id, 
-      nombre_producto: i.name, 
-      precio: i.price, 
-      cantidad: i.qty, 
-      unidad: i.unit 
-    }; 
+  // El pedido se crea DENTRO de la base de datos en una sola operación (todo o nada).
+  // La app solo manda qué productos y cuántos; los precios, el envío y el total los fija el servidor.
+  var rpc = await sb.rpc("crear_pedido", {
+    p_nombre: name,
+    p_telefono: phone,
+    p_direccion: address,
+    p_notas: notes || null,
+    p_municipio: muni,
+    p_latitud: checkoutLoc.lat,
+    p_longitud: checkoutLoc.lng,
+    p_items: cart.map(function(i){ return { producto_id: i.id, cantidad: i.qty }; })
   });
 
-  var { error: itemsErr } = await sb.from("pedido_items").insert(items);
-  if (itemsErr) console.error(itemsErr);
+  if (rpc.error || !rpc.data) {
+    var emsg = (rpc.error && rpc.error.message) || "";
+    var conocido = /^(Por ahora no llegamos|La ubicación de entrega|Tu carrito|Stock insuficiente|Ya tienes|Un producto|Producto o cantidad|Cantidad|Nombre|Teléfono|Dirección|Debes iniciar|Demasiados|Las notas)/.test(emsg);
+    var amigable = conocido ? emsg
+      : (/crear_pedido/i.test(emsg) && /schema cache|function/i.test(emsg)
+          ? "El sistema se está actualizando. Intenta de nuevo en unos minutos."
+          : "No se pudo crear el pedido. Intenta de nuevo.");
+    showToast(amigable, "err");
+    console.error(rpc.error);
+    if (/^(Stock insuficiente|Un producto)/.test(emsg)) { await loadProducts(); renderStore(); }
+    btn.disabled = false;
+    btn.textContent = "Confirmar Pedido ✅";
+    return;
+  }
+
+  var pedido = rpc.data;
+  // Montos oficiales (los calculó la base de datos)
+  var fin = {
+    subtotal: Number(pedido.subtotal),
+    envio: Number(pedido.costo_envio),
+    servicio: Number(pedido.cargo_servicio),
+    total: Number(pedido.total)
+  };
+  var detalle = pedido.items || [];
 
   var makeWebhookUrl = "https://hook.us2.make.com/8zw66j4todufq9jjohwbmd1fwiqedhph";
   try {
@@ -1725,8 +1991,13 @@ async function placeOrder() {
         longitud: checkoutLoc ? checkoutLoc.lng : null,
         mapa_url: orderMapUrl,
         notas: notes,
-        total: cartTotal(),
-        productos: cart
+        municipio: muni,
+        subtotal: fin.subtotal,
+        costo_envio: fin.envio,
+        cargo_servicio: fin.servicio,
+        total: fin.total,
+        productos: cart,
+        detalle: detalle
       })
     });
   } catch (e) {
@@ -1741,9 +2012,13 @@ async function placeOrder() {
     + "*Dirección:* " + address + "\n"
     + (orderMapUrl ? "*Ubicación en mapa:* " + orderMapUrl + "\n" : "")
     + (notes ? "*Notas:* " + notes + "\n" : "")
-    + "*Total:* $" + cartTotal().toFixed(2) + "\n\n"
+    + "*Zona:* " + muni + "\n"
+    + "*Subtotal:* " + money(fin.subtotal) + "\n"
+    + "*Envío:* " + money(fin.envio) + "\n"
+    + "*Cargo por servicio:* " + money(fin.servicio) + "\n"
+    + "*Total a cobrar:* " + money(fin.total) + "\n\n"
     + "*Detalle:*\n" 
-    + cart.map(function(item){ return "• (" + item.qty + "x) " + item.name; }).join("\n");
+    + detalle.map(function(item){ return "• (" + item.cantidad + "x) " + item.nombre; }).join("\n");
 
   var urlWA = "https://wa.me/" + numTelefonoNegocio + "?text=" + encodeURIComponent(textoMensaje);
 
@@ -1879,6 +2154,9 @@ function pedidoCardHTML(o, conTracking){
     +'<div style="border-top:1px solid #2e3350;padding-top:10px;margin-top:12px">'
     +items.map(function(i){ return '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>'+i.nombre_producto+' x'+i.cantidad+'</span><span style="color:#10b981">$'+(parseFloat(i.precio)*i.cantidad).toFixed(2)+'</span></div>'; }).join("")
     +'</div>'
+    +(o.costo_envio!=null ? '<div style="border-top:1px solid #2e3350;padding-top:8px;margin-top:10px;font-size:12px;color:#94a3b8">'
+        +'<div style="display:flex;justify-content:space-between;margin-bottom:3px"><span>Envío'+(o.municipio?' · '+escapeHTML(o.municipio):'')+'</span><span>$'+parseFloat(o.costo_envio).toFixed(2)+'</span></div>'
+        +'<div style="display:flex;justify-content:space-between"><span>Cargo por servicio</span><span>$'+parseFloat(o.cargo_servicio||0).toFixed(2)+'</span></div></div>' : '')
     +'<div style="border-top:1px solid #2e3350;padding-top:10px;margin-top:10px;display:flex;justify-content:space-between;align-items:center">'
     +'<span style="font-size:13px;font-weight:700;color:#94a3b8">TOTAL PAGADO</span>'
     +'<span style="font-size:19px;font-weight:800;color:#10b981">$'+parseFloat(o.total).toFixed(2)+'</span>'
@@ -2235,6 +2513,7 @@ async function renderAdminPedidos(){
   renderOrders(activos);
   renderOrdersHistoricos(historicos);
   renderRidersList();
+  renderCoverageAdmin();
 }
 
 function setAdminPedidosTab(tab){
@@ -2245,6 +2524,8 @@ function setAdminPedidosTab(tab){
   document.getElementById("admin-pedidos-activos").classList.toggle("hide",tab!=="activos");
   document.getElementById("admin-pedidos-historicos").classList.toggle("hide",tab!=="historicos");
   document.getElementById("admin-pedidos-riders").classList.toggle("hide",tab!=="riders");
+  document.getElementById("ap-tab-cobertura").classList.toggle("active",tab==="cobertura");
+  document.getElementById("admin-pedidos-cobertura").classList.toggle("hide",tab!=="cobertura");
 }
 
 function renderInvGrid(){
@@ -2275,7 +2556,7 @@ function renderOrders(lista){
       +'<span style="font-weight:700;font-size:14px">#'+o.id+' — '+escapeHTML(o.nombre_cliente)+'</span>'
       +'<span class="pill" style="background:rgba(16,185,129,0.15);color:#10b981">$'+parseFloat(o.total).toFixed(2)+'</span>'
       +'</div>'
-      +'<div style="font-size:12px;color:#94a3b8;margin-bottom:6px">📍 '+escapeHTML(o.direccion||o.address||"")+' · 📞 '+escapeHTML(o.telefono)+'</div>'
+      +'<div style="font-size:12px;color:#94a3b8;margin-bottom:6px">📍 '+escapeHTML(o.direccion||o.address||"")+(o.municipio?' ('+escapeHTML(o.municipio)+')':'')+' · 📞 '+escapeHTML(o.telefono)+'</div>'
       + orderMapButtonHTML(o)
       +'<div style="font-size:12px;color:#94a3b8;margin-bottom:10px">🕐 '+new Date(o.creado_en).toLocaleString("es")+' · '+items.length+' producto(s)</div>'
       +'<div style="display:flex;align-items:center;gap:10px;background:#0f1117;padding:8px 12px;border-radius:8px">'
