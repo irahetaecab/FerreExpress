@@ -57,6 +57,47 @@ main{max-width:900px;margin:0 auto;padding:18px 14px}
 .card:hover{transform:translateY(-2px)}
 .card-img{width:100%;height:130px;background:#22263a;display:flex;align-items:center;justify-content:center;font-size:50px;position:relative;overflow:hidden}
 .card-img img{width:100%;height:100%;object-fit:cover}
+/* Galería y ficha de producto */
+.gal{position:relative;border-radius:14px;overflow:hidden;background:#22263a;margin-bottom:10px}
+.gal-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.gal-track::-webkit-scrollbar{display:none}
+.gal-slide{flex:0 0 100%;scroll-snap-align:center;height:260px;display:flex;align-items:center;justify-content:center;cursor:zoom-in;background:#fff}
+.gal-slide img{width:100%;height:100%;object-fit:contain}
+.gal-slide.emoji{background:#22263a;font-size:90px;cursor:default}
+.gal-arrow{position:absolute;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:50%;border:none;background:rgba(15,17,23,.65);color:#fff;font-size:22px;line-height:1;display:flex;align-items:center;justify-content:center}
+.gal-arrow.l{left:8px}.gal-arrow.r{right:8px}
+.gal-count{position:absolute;right:10px;bottom:10px;background:rgba(15,17,23,.7);color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:10px}
+.gal-thumbs{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px}
+.gal-thumb{flex:0 0 56px;height:56px;border-radius:9px;border:2px solid #2e3350;background:#fff;padding:0;overflow:hidden;opacity:.65}
+.gal-thumb.on{border-color:#f59e0b;opacity:1}
+.gal-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.sec-title{font-size:11px;color:#f59e0b;text-transform:uppercase;letter-spacing:1.2px;font-weight:700;margin:16px 0 8px}
+.specs{width:100%;border-collapse:collapse;font-size:13px}
+.specs th,.specs td{text-align:left;padding:8px 10px;border-bottom:1px solid #2e3350;vertical-align:top}
+.specs th{color:#94a3b8;font-weight:600;width:42%}
+.specs tr:last-child th,.specs tr:last-child td{border-bottom:none}
+.modal-actions{position:sticky;bottom:-24px;margin:16px -24px -24px;padding:12px 24px 24px;background:#1a1d27;border-top:1px solid #2e3350;display:flex;gap:10px}
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:300;display:flex;align-items:center;justify-content:center}
+.lightbox img{max-width:100%;max-height:100%;object-fit:contain;background:#fff;touch-action:pinch-zoom}
+.lb-close{position:absolute;top:14px;right:14px;width:40px;height:40px;border-radius:50%;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:20px}
+.lb-arrow{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:28px;line-height:1}
+.lb-arrow.l{left:10px}.lb-arrow.r{right:10px}
+.lb-count{position:absolute;bottom:18px;left:0;right:0;text-align:center;color:#fff;font-size:13px;font-weight:700}
+/* Fotos en el formulario del admin */
+.ph-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;margin-bottom:10px}
+.ph{position:relative;aspect-ratio:1/1;border-radius:10px;overflow:hidden;background:#22263a;border:2px solid #2e3350;display:flex;align-items:center;justify-content:center;font-size:34px}
+.ph img{width:100%;height:100%;object-fit:cover}
+.ph-main{position:absolute;left:4px;top:4px;background:#f59e0b;color:#1a1d27;font-size:9px;font-weight:800;padding:2px 6px;border-radius:6px;text-transform:uppercase}
+.ph-actions{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;background:rgba(15,17,23,.75)}
+.ph-actions button{flex:1;border:none;background:transparent;color:#fff;font-size:13px;padding:5px 0}
+.ph-actions button.del{color:#ef4444}
+.spec-row{display:flex;gap:6px;margin-bottom:6px}
+.spec-row input{flex:1;min-width:0}
+.spec-row button{flex:0 0 34px;border-radius:8px;border:1px solid #2e3350;background:transparent;color:#ef4444}
+.skel{pointer-events:none}
+.skel .card-img{animation:skelpulse 1.2s ease-in-out infinite}
+.skel-line{height:12px;border-radius:6px;background:#22263a;margin:8px 0;animation:skelpulse 1.2s ease-in-out infinite}
+@keyframes skelpulse{0%,100%{opacity:.5}50%{opacity:1}}
 .card-check{position:absolute;top:7px;right:7px;background:#10b981;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:12px}
 .card-body{padding:11px 12px 13px}
 .card-cat{font-size:10px;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
@@ -400,19 +441,23 @@ label.lbl{font-size:11px;color:#94a3b8;display:block;margin-bottom:4px;font-weig
         </div>
         <div><label class="lbl">Precio ($) *</label><input id="f-price" type="number" step="0.01" placeholder="0.00"/></div>
         <div><label class="lbl">Stock *</label><input id="f-stock" type="number" placeholder="0"/></div>
-        <div class="form-full"><label class="lbl">Descripción</label><input id="f-desc" placeholder="Descripción corta"/></div>
+        <div class="form-full"><label class="lbl">Marca</label><input id="f-brand" maxlength="60" placeholder="Ej: Truper, Pavco, Philips"/></div>
+        <div class="form-full"><label class="lbl">Descripción corta</label><input id="f-desc" maxlength="200" placeholder="Una línea que resume el producto"/></div>
+        <div class="form-full"><label class="lbl">Descripción detallada</label>
+          <textarea id="f-detail" rows="5" maxlength="2000" placeholder="Para qué sirve, cómo se usa, qué incluye, recomendaciones…" style="width:100%;padding:10px 13px;border-radius:8px;border:1px solid #2e3350;background:#0f1117;color:#f1f5f9;font-size:14px;outline:none;resize:vertical;font-family:inherit"></textarea></div>
+        <div class="form-full">
+          <label class="lbl">Especificaciones (opcional)</label>
+          <div id="specs-editor"></div>
+          <button class="btn-secondary" type="button" id="btn-add-spec" onclick="addSpecRow()" style="font-size:13px;padding:8px 12px">+ Agregar característica</button>
+        </div>
         <div class="form-full" style="border-top:1px solid #2e3350;padding-top:14px">
-          <label class="lbl">IMAGEN DEL PRODUCTO</label>
-          <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
-            <div class="upload-preview" id="img-preview"><span id="img-emoji-preview">🔧</span></div>
-            <div style="flex:1">
-              <button class="btn-upload" onclick="document.getElementById('file-input').click()">📷 Subir foto</button>
-              <button class="btn-remove-img hide" id="btn-remove-img" onclick="removeImage()">🗑️ Quitar foto</button>
-            </div>
-          </div>
-          <input type="file" id="file-input" accept="image/*" style="display:none" onchange="handleImageUpload(event)"/>
+          <label class="lbl">FOTOS DEL PRODUCTO <span id="photo-count" style="color:#f59e0b"></span></label>
+          <div class="ph-grid" id="photo-grid"></div>
+          <button class="btn-upload" type="button" id="btn-add-photo" onclick="document.getElementById('file-input').click()">📷 Agregar foto</button>
+          <div style="font-size:11px;color:#94a3b8;line-height:1.5;margin-top:2px">La primera es la principal. Ideal: 3 a 5 fotos (de frente, de lado, en uso, empaque, detalle) sobre fondo claro. Se reducen solas al subirlas.</div>
+          <input type="file" id="file-input" accept="image/*" multiple style="display:none" onchange="handleImageUpload(event)"/>
           <div id="emoji-section">
-            <div style="font-size:11px;color:#94a3b8;font-weight:600;margin-bottom:7px;text-transform:uppercase">O elige un ícono</div>
+            <div style="font-size:11px;color:#94a3b8;font-weight:600;margin:12px 0 7px;text-transform:uppercase">Sin fotos: elige un ícono</div>
             <div class="emoji-grid" id="emoji-picker"></div>
           </div>
         </div>
@@ -499,21 +544,38 @@ label.lbl{font-size:11px;color:#94a3b8;display:block;margin-bottom:4px;font-weig
 </main>
 
 <div id="detail-modal" class="overlay hide" onclick="closeOverlay(event,'detail-modal')">
-  <div class="modal-box">
-    <div class="modal-img" id="modal-img"></div>
+  <div class="modal-box" id="modal-box">
+    <div class="gal">
+      <div class="gal-track" id="gal-track" onscroll="galSync()"></div>
+      <button class="gal-arrow l hide" id="gal-prev" onclick="galStep(-1)" aria-label="Foto anterior">‹</button>
+      <button class="gal-arrow r hide" id="gal-next" onclick="galStep(1)" aria-label="Foto siguiente">›</button>
+      <div class="gal-count hide" id="gal-count"></div>
+    </div>
+    <div class="gal-thumbs hide" id="gal-thumbs"></div>
     <div style="font-size:10px;color:#f59e0b;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px" id="modal-cat"></div>
+    <div style="font-size:12px;color:#94a3b8;font-weight:700;margin-bottom:2px" id="modal-brand"></div>
     <div style="font-size:20px;font-weight:800;margin-bottom:8px" id="modal-name"></div>
     <div style="font-size:14px;color:#94a3b8;margin-bottom:14px;line-height:1.6" id="modal-desc"></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
       <div><div style="font-size:26px;font-weight:800;color:#10b981" id="modal-price"></div><div style="font-size:12px;color:#94a3b8" id="modal-unit"></div></div>
       <div style="text-align:right"><div style="font-size:12px;color:#94a3b8">Stock disponible</div><div style="font-size:18px;font-weight:700" id="modal-stock"></div></div>
     </div>
-    <div id="modal-incart" class="in-cart-notice hide"></div>
-    <div style="display:flex;gap:10px">
+    <div id="modal-detail-sec" class="hide"><div class="sec-title">Descripción</div><div style="font-size:14px;color:#cbd5e1;line-height:1.65;white-space:pre-line" id="modal-detail"></div></div>
+    <div id="modal-specs-sec" class="hide"><div class="sec-title">Especificaciones</div><table class="specs" id="modal-specs"></table></div>
+    <div id="modal-incart" class="in-cart-notice hide" style="margin-top:14px"></div>
+    <div class="modal-actions">
       <button class="btn-secondary" style="flex:1" onclick="document.getElementById('detail-modal').classList.add('hide')">← Volver</button>
       <button class="btn-primary" style="flex:2;padding:12px 0;border-radius:10px;font-size:15px;font-weight:800" id="modal-add-btn" onclick="modalAddToCart()">+ Agregar</button>
     </div>
   </div>
+</div>
+
+<div id="lightbox" class="lightbox hide" onclick="closeLightbox()">
+  <button class="lb-close" onclick="closeLightbox()" aria-label="Cerrar">✕</button>
+  <button class="lb-arrow l" id="lb-prev" onclick="event.stopPropagation();lbStep(-1)" aria-label="Anterior">‹</button>
+  <img id="lb-img" alt="" onclick="event.stopPropagation()"/>
+  <button class="lb-arrow r" id="lb-next" onclick="event.stopPropagation();lbStep(1)" aria-label="Siguiente">›</button>
+  <div class="lb-count" id="lb-count"></div>
 </div>
 
 <div id="auth-modal" class="overlay center hide" onclick="closeOverlay(event,'auth-modal')">
@@ -632,10 +694,12 @@ var myOrders = [];
 var allOrders = [];
 var currentView = "tienda";
 var filterCat = "Todos";
-var formImg = null;
+var formImgs = [];      // fotos del formulario: {url, file|null}
+var formSpecs = [];     // especificaciones del formulario: {k, v}
+var MAX_PHOTOS = 5, MAX_SPECS = 10;
+var productsHaveDetail = true;
 var formEmoji = "🔧";
 var modalProductId = null;
-var selectedImageFile = null;
 
 var EMOJIS = {
   Fontaneria:["🔧","🚿","🪠","💧","🛁","⚙️","🔩","🌀","🧴","🪣","🏗️","🔑"],
@@ -659,8 +723,13 @@ async function initApp() {
   var isRecoveryLink = recoveryType === "recovery" && !!accessToken && !!refreshToken;
 
   try {
-    await loadProducts();
-    await loadCoverage();
+    // Pintar YA: con la última lista guardada en el teléfono, o con tarjetas de carga
+    if (!products.length) products = readProductsCache();
+    if (products.length) renderStore(); else renderSkeleton();
+
+    // Productos, cobertura y sesión se piden al mismo tiempo (antes iban uno tras otro)
+    var sessionPromise = isRecoveryLink ? null : sb.auth.getSession();
+    await Promise.all([loadProducts(), loadCoverage()]);
 
     if (isRecoveryLink) {
       var { data, error } = await sb.auth.setSession({
@@ -684,11 +753,11 @@ async function initApp() {
       return;
     }
 
-    var res = await sb.auth.getSession();
+    var res = await sessionPromise;
+    renderStore();
     if (res && res.data && res.data.session) {
       await handleLoggedIn(res.data.session.user);
     }
-    renderStore();
 
   } catch (e) {
     console.error("Error al iniciar:", e);
@@ -771,13 +840,53 @@ async function doModalChangePassword() {
 // ═══════════════════════════════════════════════════════════════
 // PRODUCTOS
 // ═══════════════════════════════════════════════════════════════
+var PRODUCTS_CACHE_KEY = "fx_products_v1";
+function readProductsCache(){
+  try {
+    var raw = localStorage.getItem(PRODUCTS_CACHE_KEY);
+    var arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch(e){ return []; }
+}
+function writeProductsCache(list){
+  try { localStorage.setItem(PRODUCTS_CACHE_KEY, JSON.stringify(list)); } catch(e){}
+}
+function renderSkeleton(){
+  var grid = document.getElementById("product-grid");
+  if(!grid) return;
+  var h = "";
+  for(var i=0;i<8;i++){
+    h += '<div class="card skel"><div class="card-img"></div><div class="card-body">'
+       + '<div class="skel-line" style="width:40%"></div><div class="skel-line" style="width:85%"></div>'
+       + '<div class="skel-line" style="width:50%"></div></div></div>';
+  }
+  grid.innerHTML = h;
+  var cl = document.getElementById("count-label"); if(cl) cl.textContent = "Cargando productos…";
+}
+var PROD_COLS_BASE = "id,nombre,categoria,precio,stock,unidad,descripcion,imagen_url,emoji";
+var PROD_COLS_FULL = PROD_COLS_BASE + ",marca,detalle,especificaciones,imagenes";
+function mapProduct(p){
+  var imgs = Array.isArray(p.imagenes) ? p.imagenes.filter(Boolean) : [];
+  if(!imgs.length && p.imagen_url) imgs = [p.imagen_url];
+  var specs = Array.isArray(p.especificaciones) ? p.especificaciones.filter(function(x){ return x && x.k && x.v; }) : [];
+  return { id:p.id, name:p.nombre, cat:p.categoria, price:parseFloat(p.precio), stock:p.stock, unit:p.unidad, desc:p.descripcion||"",
+           img:imgs[0]||p.imagen_url||null, imgs:imgs, emoji:p.emoji||"🔧", brand:p.marca||"", detail:p.detalle||"", specs:specs };
+}
 async function loadProducts() {
   if(!sb) return;
-  var { data, error } = await sb.from("productos").select("*").order("id");
-  if(error){ showToast("Error cargando productos","err"); console.error(error); return; }
-  products = data.map(function(p){
-    return { id:p.id, name:p.nombre, cat:p.categoria, price:parseFloat(p.precio), stock:p.stock, unit:p.unidad, desc:p.descripcion||"", img:p.imagen_url, emoji:p.emoji||"🔧" };
-  });
+  var r = await sb.from("productos").select(productsHaveDetail ? PROD_COLS_FULL : PROD_COLS_BASE).order("id");
+  if(r.error && productsHaveDetail){
+    // La base de datos aún no tiene las columnas nuevas (falta ejecutar productos-detalle.sql): se usa el modo anterior
+    productsHaveDetail = false;
+    r = await sb.from("productos").select(PROD_COLS_BASE).order("id");
+  }
+  if(r.error){
+    console.error(r.error);
+    if(!products.length){ showToast("Error cargando productos","err"); }
+    return;
+  }
+  products = r.data.map(mapProduct);
+  writeProductsCache(products);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1099,7 +1208,7 @@ function closeOverlay(e,id){ if(e.target===e.currentTarget) document.getElementB
 // ═══════════════════════════════════════════════════════════════
 function thumbHTML(p,size){
   size=size||50;
-  if(p.img) return '<img src="'+p.img+'" alt="" style="width:100%;height:100%;object-fit:cover"/>';
+  if(p.img) return '<img src="'+p.img+'" alt="" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover"/>';
   return '<span style="font-size:'+(size*0.5)+'px">'+p.emoji+'</span>';
 }
 function cartTotal(){ return cart.reduce(function(s,i){ return s+i.price*i.qty; },0); }
@@ -1117,14 +1226,14 @@ function renderStore(){
   renderFilters();
   var s=(document.getElementById("search-input")||{}).value||"";
   var list=products.filter(function(p){
-    return (filterCat==="Todos"||p.cat===filterCat)&&(p.name.toLowerCase().indexOf(s.toLowerCase())>=0||p.cat.toLowerCase().indexOf(s.toLowerCase())>=0);
+    return (filterCat==="Todos"||p.cat===filterCat)&&(p.name.toLowerCase().indexOf(s.toLowerCase())>=0||p.cat.toLowerCase().indexOf(s.toLowerCase())>=0||(p.brand||"").toLowerCase().indexOf(s.toLowerCase())>=0);
   });
   document.getElementById("count-label").textContent=list.length+" productos";
   document.getElementById("product-grid").innerHTML=list.map(function(p){
     var inC=cart.find(function(i){ return i.id===p.id; });
     return '<div class="card" onclick="openModal('+p.id+')">'
-      +'<div class="card-img">'+(p.img?'<img src="'+p.img+'" alt=""/>':"<span style='font-size:50px'>"+p.emoji+"</span>")+(inC?'<div class="card-check">✓</div>':"")+'</div>'
-      +'<div class="card-body"><div class="card-cat">'+p.cat+'</div><div class="card-name">'+p.name+'</div>'
+      +'<div class="card-img">'+(p.img?'<img src="'+p.img+'" alt="" loading="lazy" decoding="async"/>':"<span style='font-size:50px'>"+p.emoji+"</span>")+(inC?'<div class="card-check">✓</div>':"")+'</div>'
+      +'<div class="card-body"><div class="card-cat">'+p.cat+(p.brand?' · '+escapeHTML(p.brand):'')+'</div><div class="card-name">'+p.name+'</div>'
       +'<div class="card-price">$'+p.price.toFixed(2)+' <span class="card-unit">/ '+p.unit+'</span></div>'
       +'<div class="card-stock'+(p.stock<10?" low":"")+'">Stock: '+p.stock+(p.stock<10?" ⚠️":"")+'</div></div></div>';
   }).join("");
@@ -1133,24 +1242,117 @@ function renderStore(){
 // ═══════════════════════════════════════════════════════════════
 // MODAL & CARRITO
 // ═══════════════════════════════════════════════════════════════
+var galImgs = [], galIdx = 0;
+function galMark(){
+  var n = galImgs.length;
+  var c = document.getElementById("gal-count"); if(c) c.textContent = (galIdx+1) + " / " + n;
+  var ts = document.querySelectorAll("#gal-thumbs .gal-thumb");
+  for(var i=0;i<ts.length;i++) ts[i].classList.toggle("on", i===galIdx);
+  var pv = document.getElementById("gal-prev"), nx = document.getElementById("gal-next");
+  if(pv) pv.classList.toggle("hide", n<2 || galIdx===0);
+  if(nx) nx.classList.toggle("hide", n<2 || galIdx===n-1);
+}
+function galGo(i){
+  var t = document.getElementById("gal-track"); if(!t) return;
+  galIdx = Math.max(0, Math.min(galImgs.length-1, i));
+  t.scrollTo({ left: galIdx * t.clientWidth, behavior: "smooth" });
+  galMark();
+}
+function galStep(d){ galGo(galIdx + d); }
+function galSync(){
+  var t = document.getElementById("gal-track"); if(!t || !t.clientWidth) return;
+  var i = Math.round(t.scrollLeft / t.clientWidth);
+  if(i !== galIdx && i >= 0 && i < galImgs.length){ galIdx = i; galMark(); }
+}
+function renderGallery(p){
+  var track = document.getElementById("gal-track"), thumbs = document.getElementById("gal-thumbs");
+  galImgs = (p.imgs && p.imgs.length) ? p.imgs.slice() : [];
+  galIdx = 0;
+  if(!galImgs.length){
+    track.innerHTML = '<div class="gal-slide emoji"><span>' + escapeHTML(p.emoji) + '</span></div>';
+    thumbs.classList.add("hide"); thumbs.innerHTML = "";
+    document.getElementById("gal-count").classList.add("hide");
+    document.getElementById("gal-prev").classList.add("hide"); document.getElementById("gal-next").classList.add("hide");
+    return;
+  }
+  track.innerHTML = galImgs.map(function(u,i){
+    return '<div class="gal-slide" onclick="openLightbox('+i+')"><img src="'+escapeHTML(u)+'" alt="'+escapeHTML(p.name)+' - foto '+(i+1)+'" '+(i?'loading="lazy" ':'')+'decoding="async"/></div>';
+  }).join("");
+  track.scrollLeft = 0;
+  var multi = galImgs.length > 1;
+  thumbs.innerHTML = multi ? galImgs.map(function(u,i){
+    return '<button type="button" class="gal-thumb" onclick="galGo('+i+')" aria-label="Ver foto '+(i+1)+'"><img src="'+escapeHTML(u)+'" alt="" loading="lazy"/></button>';
+  }).join("") : "";
+  thumbs.classList.toggle("hide", !multi);
+  document.getElementById("gal-count").classList.toggle("hide", !multi);
+  galMark();
+}
+
+var lbIdx = 0, lbTouchX = null;
+function openLightbox(i){
+  if(!galImgs.length) return;
+  lbIdx = i; lbShow();
+  document.getElementById("lightbox").classList.remove("hide");
+}
+function lbShow(){
+  document.getElementById("lb-img").src = galImgs[lbIdx];
+  var multi = galImgs.length > 1;
+  document.getElementById("lb-count").textContent = multi ? (lbIdx+1) + " / " + galImgs.length : "";
+  document.getElementById("lb-prev").classList.toggle("hide", !multi || lbIdx===0);
+  document.getElementById("lb-next").classList.toggle("hide", !multi || lbIdx===galImgs.length-1);
+}
+function lbStep(d){
+  var n = lbIdx + d; if(n < 0 || n >= galImgs.length) return;
+  lbIdx = n; lbShow();
+}
+function closeLightbox(){
+  document.getElementById("lightbox").classList.add("hide");
+  document.getElementById("lb-img").removeAttribute("src");
+  galGo(lbIdx);
+}
+(function(){
+  var lb = document.getElementById("lightbox");
+  if(!lb) return;
+  lb.addEventListener("touchstart", function(e){ lbTouchX = e.touches.length === 1 ? e.touches[0].clientX : null; }, {passive:true});
+  lb.addEventListener("touchend", function(e){
+    if(lbTouchX === null) return;
+    var dx = e.changedTouches[0].clientX - lbTouchX; lbTouchX = null;
+    if(Math.abs(dx) > 60) lbStep(dx < 0 ? 1 : -1);
+  }, {passive:true});
+  document.addEventListener("keydown", function(e){
+    if(lb.classList.contains("hide")) return;
+    if(e.key === "Escape") closeLightbox();
+    else if(e.key === "ArrowLeft") lbStep(-1);
+    else if(e.key === "ArrowRight") lbStep(1);
+  });
+})();
+
 function openModal(id){
   var p=products.find(function(x){ return x.id===id; }); if(!p) return;
   modalProductId=id;
-  document.getElementById("modal-img").innerHTML=p.img?'<img src="'+p.img+'" alt=""/>':"<span>"+p.emoji+"</span>";
+  renderGallery(p);
   document.getElementById("modal-cat").textContent=p.cat;
+  var br=document.getElementById("modal-brand"); br.textContent=p.brand||""; br.classList.toggle("hide",!p.brand);
   document.getElementById("modal-name").textContent=p.name;
-  document.getElementById("modal-desc").textContent=p.desc;
+  var d=document.getElementById("modal-desc"); d.textContent=p.desc; d.classList.toggle("hide",!p.desc);
   document.getElementById("modal-price").textContent="$"+p.price.toFixed(2);
   document.getElementById("modal-unit").textContent="por "+p.unit;
   var sv=document.getElementById("modal-stock");
   sv.textContent=p.stock+" "+p.unit+(p.stock<10?" ⚠️":"");
   sv.style.color=p.stock<10?"#ef4444":"#f1f5f9";
+  document.getElementById("modal-detail").textContent=p.detail||"";
+  document.getElementById("modal-detail-sec").classList.toggle("hide",!p.detail);
+  document.getElementById("modal-specs").innerHTML=(p.specs||[]).map(function(x){
+    return '<tr><th>'+escapeHTML(x.k)+'</th><td>'+escapeHTML(x.v)+'</td></tr>';
+  }).join("");
+  document.getElementById("modal-specs-sec").classList.toggle("hide",!(p.specs&&p.specs.length));
   var inC=cart.find(function(i){ return i.id===id; });
   var ic=document.getElementById("modal-incart");
   if(inC){ ic.textContent="✓ Ya tienes "+inC.qty+" en el carrito"; ic.classList.remove("hide"); } else ic.classList.add("hide");
   var btn=document.getElementById("modal-add-btn");
   btn.disabled=p.stock===0; btn.textContent=p.stock===0?"Sin stock":"+ Agregar al carrito";
   document.getElementById("detail-modal").classList.remove("hide");
+  document.getElementById("modal-box").scrollTop=0;
 }
 function modalAddToCart(){
   var p=products.find(function(x){ return x.id===modalProductId; }); if(!p) return;
@@ -2673,9 +2875,9 @@ function toggleForm(){
 }
 function cancelForm(){ document.getElementById("product-form").classList.add("hide"); document.getElementById("btn-toggle-form").textContent="+ Nuevo"; clearForm(); }
 function clearForm(){
-  ["f-name","f-price","f-stock","f-desc"].forEach(function(id){ document.getElementById(id).value=""; });
+  ["f-name","f-price","f-stock","f-desc","f-brand","f-detail"].forEach(function(id){ document.getElementById(id).value=""; });
   document.getElementById("f-category").value="Fontaneria"; document.getElementById("f-unit").value="und";
-  formImg=null; selectedImageFile=null; formEmoji="🔧"; updateImagePreview(); updateEmojiPicker();
+  formImgs=[]; formSpecs=[]; renderSpecs(); formEmoji="🔧"; updateImagePreview(); updateEmojiPicker();
 }
 function updateEmojiPicker(){
   var cat=document.getElementById("f-category").value, emojis=EMOJIS[cat]||EMOJIS["Fontaneria"];
@@ -2688,28 +2890,53 @@ function updateEmojiPicker(){
 function selectEmoji(e){ formEmoji=e; updateEmojiPicker(); }
 
 function handleImageUpload(ev) {
-  var file = ev.target.files[0]; 
-  if (!file) return;
-  if (file.size > 5 * 1024 * 1024) { 
-    showToast("Imagen debe ser menor a 5MB", "err"); 
-    return; 
+  var files = Array.prototype.slice.call(ev.target.files || []);
+  ev.target.value = "";
+  for(var i=0;i<files.length;i++){
+    if(formImgs.length >= MAX_PHOTOS){ showToast("Máximo " + MAX_PHOTOS + " fotos por producto", "err"); break; }
+    var f = files[i];
+    if(f.size > 15 * 1024 * 1024){ showToast("Una foto pesa más de 15MB y no se agregó", "err"); continue; }
+    formImgs.push({ url: URL.createObjectURL(f), file: f });
   }
-  selectedImageFile = file;
-  
-  var reader = new FileReader();
-  reader.onload = function(e) { 
-    formImg = e.target.result; 
-    updateImagePreview(); 
-  };
-  reader.readAsDataURL(file);
+  updateImagePreview();
+}
+function photoMove(i, d){
+  var j = i + d; if(j < 0 || j >= formImgs.length) return;
+  var t = formImgs[i]; formImgs[i] = formImgs[j]; formImgs[j] = t;
+  updateImagePreview();
+}
+function photoRemove(i){ formImgs.splice(i, 1); updateImagePreview(); }
+function updateImagePreview(){
+  var grid = document.getElementById("photo-grid"), emojiSec = document.getElementById("emoji-section");
+  if(!grid) return;
+  if(!formImgs.length){
+    grid.innerHTML = '<div class="ph" title="Sin fotos: se muestra el ícono">' + formEmoji + '</div>';
+  } else {
+    grid.innerHTML = formImgs.map(function(im, i){
+      return '<div class="ph"><img src="' + escapeHTML(im.url) + '" alt=""/>' + (i === 0 ? '<span class="ph-main">Principal</span>' : '')
+        + '<div class="ph-actions">'
+        + (i > 0 ? '<button type="button" onclick="photoMove(' + i + ',-1)" aria-label="Mover antes">◀</button>' : '')
+        + '<button type="button" class="del" onclick="photoRemove(' + i + ')" aria-label="Quitar foto">✕</button>'
+        + (i < formImgs.length - 1 ? '<button type="button" onclick="photoMove(' + i + ',1)" aria-label="Mover después">▶</button>' : '')
+        + '</div></div>';
+    }).join("");
+  }
+  document.getElementById("photo-count").textContent = "(" + formImgs.length + "/" + MAX_PHOTOS + ")";
+  document.getElementById("btn-add-photo").classList.toggle("hide", formImgs.length >= MAX_PHOTOS);
+  emojiSec.classList.toggle("hide", formImgs.length > 0);
 }
 
-function removeImage(){ formImg=null; selectedImageFile=null; document.getElementById("file-input").value=""; updateImagePreview(); }
-function updateImagePreview(){
-  var prev=document.getElementById("img-preview"), removeBtn=document.getElementById("btn-remove-img"), emojiSec=document.getElementById("emoji-section");
-  if(formImg){ prev.innerHTML='<img src="'+formImg+'" alt="" style="width:100%;height:100%;object-fit:cover"/>'; removeBtn.classList.remove("hide"); emojiSec.classList.add("hide"); }
-  else { prev.innerHTML='<span style="font-size:30px">'+formEmoji+'</span>'; removeBtn.classList.remove("hide"); emojiSec.classList.remove("hide"); }
+function renderSpecs(){
+  var box = document.getElementById("specs-editor"); if(!box) return;
+  box.innerHTML = formSpecs.map(function(sp, i){
+    return '<div class="spec-row"><input maxlength="40" placeholder="Característica (ej: Material)" value="' + escapeHTML(sp.k) + '" oninput="formSpecs[' + i + '].k=this.value"/>'
+      + '<input maxlength="80" placeholder="Valor (ej: Bronce)" value="' + escapeHTML(sp.v) + '" oninput="formSpecs[' + i + '].v=this.value"/>'
+      + '<button type="button" onclick="removeSpecRow(' + i + ')" aria-label="Quitar">✕</button></div>';
+  }).join("");
+  var add = document.getElementById("btn-add-spec"); if(add) add.classList.toggle("hide", formSpecs.length >= MAX_SPECS);
 }
+function addSpecRow(){ if(formSpecs.length >= MAX_SPECS) return; formSpecs.push({ k: "", v: "" }); renderSpecs(); }
+function removeSpecRow(i){ formSpecs.splice(i, 1); renderSpecs(); }
 
 function startEdit(id){
   var p=products.find(function(x){ return x.id===id; }); if(!p) return;
@@ -2718,18 +2945,49 @@ function startEdit(id){
   document.getElementById("f-name").value=p.name; document.getElementById("f-category").value=p.cat;
   document.getElementById("f-unit").value=p.unit; document.getElementById("f-price").value=p.price;
   document.getElementById("f-stock").value=p.stock; document.getElementById("f-desc").value=p.desc;
-  formImg=p.img||null; selectedImageFile=null; formEmoji=p.emoji||"🔧"; updateEmojiPicker(); updateImagePreview();
+  document.getElementById("f-brand").value=p.brand||""; document.getElementById("f-detail").value=p.detail||"";
+  formImgs=(p.imgs||[]).map(function(u){ return { url:u, file:null }; });
+  formSpecs=(p.specs||[]).map(function(x){ return { k:x.k, v:x.v }; }); renderSpecs();
+  formEmoji=p.emoji||"🔧"; updateEmojiPicker(); updateImagePreview();
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
+// Reduce la foto antes de subirla: una foto de celular pesa 3-5 MB; así queda en ~60-120 KB
+function compressImage(file, maxSide, quality){
+  return new Promise(function(resolve){
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function(){
+      try {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        var k = Math.min(1, maxSide / Math.max(w, h));
+        var cw = Math.max(1, Math.round(w * k)), ch = Math.max(1, Math.round(h * k));
+        var c = document.createElement("canvas"); c.width = cw; c.height = ch;
+        var ctx = c.getContext("2d");
+        ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, cw, ch);
+        ctx.drawImage(img, 0, 0, cw, ch);
+        c.toBlob(function(blob){
+          URL.revokeObjectURL(url);
+          if(blob && blob.size < file.size) resolve({ blob: blob, ext: blob.type === "image/webp" ? "webp" : "jpg" });
+          else resolve(null);
+        }, "image/webp", quality);
+      } catch(e){ URL.revokeObjectURL(url); resolve(null); }
+    };
+    img.onerror = function(){ URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;
+  });
+}
+
 async function uploadToStorage(file) {
-  var fileExt = file.name.split('.').pop();
+  var body = file, fileExt = (file.name.split('.').pop() || "jpg").toLowerCase();
+  var small = await compressImage(file, 900, 0.82);
+  if(small){ body = small.blob; fileExt = small.ext; }
   var fileName = Date.now() + "." + fileExt;
   var filePath = "productos/" + fileName;
 
   var { error: uploadError } = await sb.storage
     .from('imagenes-productos')
-    .upload(filePath, file);
+    .upload(filePath, body, { cacheControl: "31536000", contentType: body.type || undefined });
 
   if (uploadError) throw uploadError;
 
@@ -2756,11 +3014,28 @@ async function saveProduct() {
   btn.textContent = "Guardando...";
 
   try {
-    var finalImageUrl = formImg;
+    var brand = document.getElementById("f-brand").value.trim();
+    var detail = document.getElementById("f-detail").value.trim();
+    var specs = formSpecs.map(function(x){ return { k: String(x.k||"").trim(), v: String(x.v||"").trim() }; })
+                         .filter(function(x){ return x.k && x.v; }).slice(0, MAX_SPECS);
 
-    if (selectedImageFile) {
-      finalImageUrl = await uploadToStorage(selectedImageFile);
+    if (!productsHaveDetail && (formImgs.length > 1 || brand || detail || specs.length)) {
+      showToast("Falta ejecutar productos-detalle.sql en Supabase para guardar fotos extra, marca y especificaciones", "err");
+      return;
     }
+
+    // Subir (ya reducidas) las fotos nuevas, en orden
+    var urls = [];
+    for (var i = 0; i < formImgs.length; i++) {
+      var im = formImgs[i];
+      if (im.file) {
+        btn.textContent = "Subiendo foto " + (i + 1) + " de " + formImgs.length + "…";
+        urls.push(await uploadToStorage(im.file));
+      } else {
+        urls.push(im.url);
+      }
+    }
+    btn.textContent = "Guardando...";
 
     var data = { 
       nombre: name, 
@@ -2769,9 +3044,15 @@ async function saveProduct() {
       precio: price, 
       stock: stock, 
       descripcion: document.getElementById("f-desc").value, 
-      imagen_url: finalImageUrl, 
+      imagen_url: urls[0] || null, 
       emoji: formEmoji 
     };
+    if (productsHaveDetail) {
+      data.marca = brand || null;
+      data.detalle = detail || null;
+      data.especificaciones = specs;
+      data.imagenes = urls;
+    }
 
     var error;
     if (editId) { 
@@ -2786,7 +3067,6 @@ async function saveProduct() {
 
     if (error) throw error;
 
-    selectedImageFile = null;
     cancelForm();
     await renderAdmin();
     renderStore();
