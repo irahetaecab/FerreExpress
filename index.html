@@ -2629,6 +2629,7 @@ function riderMineCardHTML(o){
       + '<div style="display:flex;gap:8px;margin-bottom:6px">'
       + '<a class="btn-map" style="flex:1;margin:0" href="' + escapeHTML(turl) + '" target="_blank" rel="noopener">🗺️ Cómo llegar</a>'
       + '<a class="btn-map" style="flex:1;margin:0" href="tel:' + escapeHTML(String(tienda.telefono || "").replace(/[^0-9+]/g, "")) + '">📞 Llamar</a></div>'
+      + (tienda.codigo ? '<div style="background:#0f1117;border-radius:8px;padding:8px 10px;margin-bottom:6px;text-align:center"><div style="font-size:11px;color:#94a3b8">🔑 CÓDIGO DE RETIRO · díselo a la tienda al recoger</div><div style="font-size:28px;font-weight:900;letter-spacing:8px;color:#f59e0b">' + escapeHTML(tienda.codigo) + '</div></div>' : '')
       + '<div style="font-size:12px;color:' + (tienda.listo ? '#10b981' : '#f59e0b') + '">' + (tienda.listo ? '✅ La tienda ya lo dejó listo' : '⏳ La tienda aún lo está preparando') + '</div></div>'
       + '<div style="font-size:11px;font-weight:800;color:#94a3b8;margin-bottom:6px">2️⃣ ENTREGAR AL CLIENTE</div>';
   }
@@ -2888,13 +2889,13 @@ function vendMioCardHTML(o){
     actions = '<button class="btn-rider-drop" style="width:100%;margin-top:10px" onclick="vendSoltar(' + id + ', this)">↩️ No puedo cumplirlo</button>';
   } else if(est === "en_preparacion" && !lista){
     label = "🛠️ Apártalo"; bg = "rgba(245,158,11,0.15)"; col = "#f59e0b";
-    hint = (rider ? ("🏍️ " + rider + " ya va por él. ") : "Los riders ya lo ven. ") + "Aparta TODOS los productos y toca «Listo para recoger» cuando estén listos.";
+    hint = (rider ? "" : "Aún ningún rider lo ha tomado. ") + "Aparta TODOS los productos y toca «Listo para recoger» cuando estén listos.";
     actions = '<div style="display:flex;gap:8px;margin-top:12px">'
       + '<button class="btn-rider-done" onclick="vendMarcarListo(' + id + ', this)">✅ Listo para recoger</button>'
       + '<button class="btn-rider-drop" onclick="vendSoltar(' + id + ', this)">↩️ No puedo</button></div>';
   } else if(est === "en_preparacion" && lista){
     label = rider ? "🏍️ Rider en camino a recoger" : "📦 Listo · esperando rider";
-    hint = rider ? ("Entrégale el pedido #" + id + " a " + rider + ".") : "Mantén los productos apartados: un rider vendrá por ellos.";
+    hint = rider ? ("Entrégale el pedido #" + id + " solo a " + rider + ", cuando te diga el código de retiro.") : "Mantén los productos apartados: un rider vendrá por ellos.";
   } else if(est === "en_camino"){
     label = "🚵 Recogido · en camino al cliente"; hint = rider ? ("Lo lleva " + rider + ".") : "";
   } else if(est === "entregado"){
@@ -2902,6 +2903,19 @@ function vendMioCardHTML(o){
   } else if(est === "cancelado"){
     label = "✖️ Cancelado"; bg = "rgba(239,68,68,0.15)"; col = "#ef4444";
   } else { label = est; }
+  var riderBox = "";
+  if(rider && o.codigo_retiro && (est === "en_preparacion" || est === "en_camino")){
+    var rtel = String(o.rider_telefono || "").replace(/[^0-9+]/g, "");
+    riderBox = '<div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.35);border-radius:10px;padding:10px 12px;margin-top:10px">'
+      + '<div style="font-size:11px;font-weight:800;color:#10b981;margin-bottom:4px">🏍️ RIDER ASIGNADO</div>'
+      + '<div style="font-weight:700;font-size:15px">' + escapeHTML(rider) + '</div>'
+      + (rtel ? '<a href="tel:' + escapeHTML(rtel) + '" style="font-size:13px;color:#93c5fd;text-decoration:none">📞 ' + escapeHTML(o.rider_telefono) + '</a>' : '')
+      + (est === "en_preparacion"
+          ? '<div style="margin-top:8px;font-size:12px;color:#cbd5e1">Al recoger, pídele el <strong>código de retiro</strong> y compáralo con este:</div>'
+            + '<div style="font-size:30px;font-weight:900;letter-spacing:8px;color:#f59e0b;text-align:center;margin-top:4px">' + escapeHTML(o.codigo_retiro) + '</div>'
+          : '<div style="margin-top:6px;font-size:12px;color:#94a3b8">Ya salió con el pedido. Código usado: ' + escapeHTML(o.codigo_retiro) + '</div>')
+      + '</div>';
+  }
   var pay = "";
   if(o.pago_tienda != null){
     if(est === "entregado"){
@@ -2917,7 +2931,8 @@ function vendMioCardHTML(o){
     + '<span style="font-weight:800;font-size:15px">Pedido #' + id + '</span>'
     + '<span class="pill" style="background:' + bg + ';color:' + col + '">' + label + '</span></div>'
     + (hint ? '<div style="font-size:12px;color:#cbd5e1;margin-bottom:8px">' + escapeHTML(hint) + '</div>' : '')
-    + '<div style="background:#0f1117;border-radius:8px;padding:10px 12px">' + vendItemsHTML(o.items) + '</div>'
+    + riderBox
+    + '<div style="background:#0f1117;border-radius:8px;padding:10px 12px;margin-top:10px">' + vendItemsHTML(o.items) + '</div>'
     + pay + actions + '</div>';
 }
 function renderVendedor(){
