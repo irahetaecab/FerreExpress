@@ -142,6 +142,13 @@ main{max-width:900px;margin:0 auto;padding:18px 14px}
 .total-val{font-size:24px;font-weight:800;color:#f59e0b}
 .btn-primary{padding:10px 20px;border-radius:8px;border:none;background:#f59e0b;color:#000;font-weight:700;font-size:14px}
 .btn-primary:disabled{opacity:0.6}
+.pay-opt{flex:1;padding:12px 8px;border-radius:12px;border:2px solid #2e3350;background:#0f1117;color:#cbd5e1;font-weight:700;font-size:14px;line-height:1.35;text-align:center}
+.pay-opt span{font-weight:500;font-size:11px;color:#94a3b8}
+.pay-opt.active{border-color:#f59e0b;background:rgba(245,158,11,0.1);color:#f59e0b}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;color:#94a3b8;font-weight:700;padding:6px 4px;border-bottom:1px solid #2e3350}
+.tbl td{padding:7px 4px;border-bottom:1px solid #1d2136}
+.tbl td.num,.tbl th.num{text-align:right}
 .btn-secondary{padding:10px 16px;border-radius:8px;border:1px solid #2e3350;background:transparent;color:#94a3b8;font-weight:600;font-size:14px}
 .form-card{background:#1a1d27;border:1px solid #2e3350;border-radius:14px;padding:18px;margin-bottom:18px}
 .form-title{font-size:14px;font-weight:700;color:#f59e0b;margin-bottom:14px}
@@ -333,7 +340,14 @@ label.lbl{font-size:11px;color:#94a3b8;display:block;margin-bottom:4px;font-weig
         <div class="sum-row"><span id="sum-envio-label">Envío</span><span id="sum-envio">—</span></div>
         <div class="sum-row"><span>Cargo por servicio</span><span id="sum-servicio">$0.00</span></div>
         <div class="sum-row total"><span>TOTAL</span><span class="total-val" id="checkout-total">$0.00</span></div>
-        <div style="margin-top:10px"><span class="pill" style="background:rgba(16,185,129,0.15);color:#10b981">Pago contra entrega</span></div>
+        <div style="margin-top:14px">
+          <div style="font-size:11px;font-weight:800;color:#94a3b8;margin-bottom:6px">MÉTODO DE PAGO</div>
+          <div style="display:flex;gap:8px">
+            <button type="button" class="pay-opt active" id="pay-efectivo" onclick="setPayMethod('efectivo')">💵<br>Efectivo<br><span>contra entrega</span></button>
+            <button type="button" class="pay-opt" id="pay-transferencia" onclick="setPayMethod('transferencia')">🏦<br>Transferencia<br><span>bancaria</span></button>
+          </div>
+          <div id="pay-hint" style="font-size:12px;color:#94a3b8;margin-top:8px">Pagas en efectivo al recibir tu pedido.</div>
+        </div>
       </div>
       <div style="display:flex;gap:8px">
         <button class="btn-secondary" onclick="setCheckoutStep(0)">← Volver</button>
@@ -506,6 +520,8 @@ label.lbl{font-size:11px;color:#94a3b8;display:block;margin-bottom:4px;font-weig
       <button class="filter-btn" id="ap-tab-riders" onclick="setAdminPedidosTab('riders')">🏍️ Riders</button>
       <button class="filter-btn" id="ap-tab-cobertura" onclick="setAdminPedidosTab('cobertura')">📍 Cobertura</button>
       <button class="filter-btn" id="ap-tab-tiendas" onclick="setAdminPedidosTab('tiendas')">🏪 Tiendas</button>
+      <button class="filter-btn" id="ap-tab-pagos" onclick="setAdminPedidosTab('pagos')">💳 Pagos</button>
+      <button class="filter-btn" id="ap-tab-tiempos" onclick="setAdminPedidosTab('tiempos')">⏱ Tiempos</button>
     </div>
     <div id="admin-pedidos-activos">
       <div id="orders-section" class="form-card" style="padding:0;overflow:hidden">
@@ -561,6 +577,37 @@ label.lbl{font-size:11px;color:#94a3b8;display:block;margin-bottom:4px;font-weig
         </div>
         <div id="tiendas-list"></div>
       </div>
+    </div>
+    <div id="admin-pedidos-pagos" class="hide">
+      <div id="pagos-unavailable" class="tip-banner hide" style="margin-bottom:14px">⚠️ Falta ejecutar <strong>pagos-y-tiempos.sql</strong> en Supabase (SQL Editor) para activar los pagos por transferencia.</div>
+      <div class="tip-banner" style="margin-bottom:14px">🏦 Estos datos los ve el cliente cuando elige <strong>Transferencia</strong>. El pedido por transferencia queda <strong>bloqueado</strong> (no se ofrece a tiendas ni a riders) hasta que toques <strong>Confirmar pago recibido</strong> en el pedido.</div>
+      <div class="form-card">
+        <div class="form-title">🏦 Datos para transferencias</div>
+        <label class="lbl">Banco *</label>
+        <input id="pago-banco" maxlength="80" placeholder="Ej: Banco Agrícola"/>
+        <label class="lbl" style="margin-top:10px">Tipo de cuenta</label>
+        <input id="pago-tipo" maxlength="40" placeholder="Ej: Ahorros"/>
+        <label class="lbl" style="margin-top:10px">Número de cuenta *</label>
+        <input id="pago-numero" maxlength="40" inputmode="numeric" placeholder="Número de cuenta"/>
+        <label class="lbl" style="margin-top:10px">Titular *</label>
+        <input id="pago-titular" maxlength="120" placeholder="Nombre del titular"/>
+        <label class="lbl" style="margin-top:10px">Instrucciones (opcional)</label>
+        <input id="pago-instr" maxlength="500" placeholder="Ej: Pon el número de pedido en el concepto"/>
+        <button class="btn-primary" style="width:100%;margin-top:14px" onclick="saveDatosPago()">Guardar datos bancarios</button>
+        <div id="pago-preview" style="margin-top:14px"></div>
+      </div>
+    </div>
+    <div id="admin-pedidos-tiempos" class="hide">
+      <div id="tiempos-unavailable" class="tip-banner hide" style="margin-bottom:14px">⚠️ Falta ejecutar <strong>pagos-y-tiempos.sql</strong> en Supabase (SQL Editor) para activar el registro de tiempos.</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px">
+        <select id="tiempos-dias" style="flex:1" onchange="renderTiempos()">
+          <option value="7">Últimos 7 días</option>
+          <option value="30" selected>Últimos 30 días</option>
+          <option value="90">Últimos 90 días</option>
+        </select>
+        <button class="btn-secondary" onclick="renderTiempos()">🔄 Actualizar</button>
+      </div>
+      <div id="tiempos-body"></div>
     </div>
     <div id="admin-pedidos-cobertura" class="hide">
       <div class="form-card" style="margin-bottom:14px">
@@ -1112,6 +1159,7 @@ async function handleLoggedIn(authUser) {
   subscribeToMyOrders();
   startRiderPolling();
   startVendPolling();
+  loadDatosPago();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1130,18 +1178,21 @@ function subscribeToMyOrders() {
       { event: "UPDATE", schema: "public", table: "pedidos", filter: "usuario_id=eq." + currentUser.id },
       function (payload) {
         // Actualiza el pedido en memoria con el nuevo estado
-        var cambio = false;
+        var cambio = false, pagoOk = false;
         myOrders.forEach(function (o) {
           if (o.id === payload.new.id){
             if (o.estado !== payload.new.estado || (o.rider_nombre || null) !== (payload.new.rider_nombre || null)) cambio = true;
+            if (!o.pago_confirmado_en && payload.new.pago_confirmado_en) pagoOk = true;
             o.estado = payload.new.estado; o.entregado_en = payload.new.entregado_en; o.rider_nombre = payload.new.rider_nombre;
+            o.pago_confirmado_en = payload.new.pago_confirmado_en;
           }
         });
         updatePedidosBadge();
         // Si el cliente está viendo "Mis pedidos" en este momento, refresca la vista
         if (currentView === "pedidos") renderMyOrders();
         // Los movimientos internos (oferta a tiendas, validación, tienda lista) no son novedad para el cliente
-        if (cambio) showToast("📦 Tu pedido #" + payload.new.id + " cambió de estado", "ok");
+        if (pagoOk) showToast("✅ Recibimos tu pago del pedido #" + payload.new.id, "ok");
+        else if (cambio) showToast("📦 Tu pedido #" + payload.new.id + " cambió de estado", "ok");
       }
     )
     .subscribe();
@@ -2224,7 +2275,7 @@ async function placeOrder() {
 
   // El pedido se crea DENTRO de la base de datos en una sola operación (todo o nada).
   // La app solo manda qué productos y cuántos; los precios, el envío y el total los fija el servidor.
-  var rpc = await sb.rpc("crear_pedido", {
+  var args = {
     p_nombre: name,
     p_telefono: phone,
     p_direccion: address,
@@ -2233,11 +2284,15 @@ async function placeOrder() {
     p_latitud: checkoutLoc.lat,
     p_longitud: checkoutLoc.lng,
     p_items: cart.map(function(i){ return { producto_id: i.id, cantidad: i.qty }; })
-  });
+  };
+  // El efectivo no manda el parámetro: así sigue funcionando aunque aún no se haya ejecutado pagos-y-tiempos.sql
+  var metodoPago = checkoutPay;
+  if(metodoPago === "transferencia") args.p_metodo_pago = "transferencia";
+  var rpc = await sb.rpc("crear_pedido", args);
 
   if (rpc.error || !rpc.data) {
     var emsg = (rpc.error && rpc.error.message) || "";
-    var conocido = /^(Por ahora no llegamos|La ubicación de entrega|Tu carrito|Stock insuficiente|Ya tienes|Un producto|Producto o cantidad|Cantidad|Nombre|Teléfono|Dirección|Debes iniciar|Demasiados|Las notas)/.test(emsg);
+    var conocido = /^(Por ahora no llegamos|La ubicación de entrega|Tu carrito|Stock insuficiente|Ya tienes|Un producto|Producto o cantidad|Cantidad|Nombre|Teléfono|Dirección|Debes iniciar|Demasiados|Las notas|Método de pago)/.test(emsg);
     var amigable = conocido ? emsg
       : (/crear_pedido/i.test(emsg) && /schema cache|function/i.test(emsg)
           ? "El sistema se está actualizando. Intenta de nuevo en unos minutos."
@@ -2279,6 +2334,7 @@ async function placeOrder() {
         costo_envio: fin.envio,
         cargo_servicio: fin.servicio,
         total: fin.total,
+        metodo_pago: metodoPago,
         productos: cart,
         detalle: detalle
       })
@@ -2299,7 +2355,9 @@ async function placeOrder() {
     + "*Subtotal:* " + money(fin.subtotal) + "\n"
     + "*Envío:* " + money(fin.envio) + "\n"
     + "*Cargo por servicio:* " + money(fin.servicio) + "\n"
-    + "*Total a cobrar:* " + money(fin.total) + "\n\n"
+    + (metodoPago === "transferencia"
+        ? "*Pago:* 🏦 TRANSFERENCIA (pendiente de confirmar)\n*Total a transferir:* " + money(fin.total) + "\n\n"
+        : "*Pago:* 💵 Efectivo contra entrega\n*Total a cobrar:* " + money(fin.total) + "\n\n")
     + "*Detalle:*\n" 
     + detalle.map(function(item){ return "• (" + item.cantidad + "x) " + item.nombre; }).join("\n");
 
@@ -2316,7 +2374,9 @@ async function placeOrder() {
 
   updateCartBadge(); 
   checkoutLoc = null; checkoutAddrId = null;
-  showToast("¡Pedido realizado con éxito! ✅", "ok"); 
+  setPayMethod("efectivo");
+  showToast(metodoPago === "transferencia" ? "¡Pedido recibido! Ahora realiza tu transferencia 🏦" : "¡Pedido realizado con éxito! ✅", "ok"); 
+  if(metodoPago === "transferencia") await loadDatosPago();
   showView("pedidos");
 
   window.open(urlWA, "_blank");
@@ -2433,6 +2493,7 @@ function pedidoCardHTML(o, conTracking){
     +'<div style="font-size:12px;color:#94a3b8;margin-bottom:6px">🕐 '+new Date(o.creado_en).toLocaleString("es")+'</div>'
     +'<div style="font-size:12px;color:#94a3b8;margin-bottom:10px">📍 '+escapeHTML(o.direccion||o.address||"")+'</div>'
     + (o.rider_nombre && o.estado!=="entregado" ? '<div style="font-size:13px;color:#f59e0b;margin-bottom:10px">🏍️ Lo lleva <strong>'+escapeHTML(o.rider_nombre)+'</strong></div>' : '')
+    + pagoClienteHTML(o)
     + (conTracking ? getTrackingHTML(o.id, o.estado) : '')
     +'<div style="border-top:1px solid #2e3350;padding-top:10px;margin-top:12px">'
     +items.map(function(i){ return '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>'+i.nombre_producto+' x'+i.cantidad+'</span><span style="color:#10b981">$'+(parseFloat(i.precio)*i.cantidad).toFixed(2)+'</span></div>'; }).join("")
@@ -2441,7 +2502,7 @@ function pedidoCardHTML(o, conTracking){
         +'<div style="display:flex;justify-content:space-between;margin-bottom:3px"><span>Envío'+(o.municipio?' · '+escapeHTML(o.municipio):'')+'</span><span>$'+parseFloat(o.costo_envio).toFixed(2)+'</span></div>'
         +'<div style="display:flex;justify-content:space-between"><span>Cargo por servicio</span><span>$'+parseFloat(o.cargo_servicio||0).toFixed(2)+'</span></div></div>' : '')
     +'<div style="border-top:1px solid #2e3350;padding-top:10px;margin-top:10px;display:flex;justify-content:space-between;align-items:center">'
-    +'<span style="font-size:13px;font-weight:700;color:#94a3b8">TOTAL PAGADO</span>'
+    +'<span style="font-size:13px;font-weight:700;color:#94a3b8">'+((o.estado==="entregado"||(o.metodo_pago==="transferencia"&&o.pago_confirmado_en))?'TOTAL PAGADO':'TOTAL A PAGAR')+'</span>'
     +'<span style="font-size:19px;font-weight:800;color:#10b981">$'+parseFloat(o.total).toFixed(2)+'</span>'
     +'</div></div>';
 }
@@ -2589,7 +2650,9 @@ function riderAvailCardHTML(o){
   return '<div class="order-card" style="border-radius:12px;margin-bottom:12px">'
     + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
     + '<span style="font-weight:800;font-size:15px">Pedido #' + Number(o.id) + '</span>'
-    + '<span class="pill" style="background:rgba(16,185,129,0.15);color:#10b981">Cobrar $' + parseFloat(o.total).toFixed(2) + '</span></div>'
+    + (o.metodo_pago === "transferencia"
+        ? '<span class="pill" style="background:rgba(59,130,246,0.15);color:#93c5fd">Ya pagado · NO cobrar</span></div>'
+        : '<span class="pill" style="background:rgba(16,185,129,0.15);color:#10b981">Cobrar $' + parseFloat(o.total).toFixed(2) + '</span></div>')
     + '<div style="font-size:12px;color:#94a3b8;margin-bottom:6px">🕐 ' + timeAgo(o.creado_en) + '</div>'
     + (o.tienda_nombre ? riderTiendaDisponibleHTML(o) : '')
     + '<div style="font-size:13px;color:#cbd5e1;margin-bottom:10px">📍 Entregar en: ' + escapeHTML(o.direccion) + '</div>'
@@ -2657,8 +2720,10 @@ function riderMineCardHTML(o){
     + (est === "entregado" ? '' : orderMapButtonHTML(o))
     + contact
     + '<div style="background:#0f1117;border-radius:8px;padding:8px 10px;margin:8px 0">' + items + '</div>'
-    + '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;font-weight:700;color:#94a3b8">COBRAR AL ENTREGAR</span>'
-    + '<span style="font-size:19px;font-weight:800;color:#10b981">$' + parseFloat(o.total).toFixed(2) + '</span></div>'
+    + (o.metodo_pago === "transferencia"
+        ? '<div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.35);border-radius:8px;padding:8px 10px;font-size:13px;color:#93c5fd">🏦 <strong>Ya pagado por transferencia.</strong> No cobres nada al cliente.</div>'
+        : '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;font-weight:700;color:#94a3b8">COBRAR AL ENTREGAR</span>'
+          + '<span style="font-size:19px;font-weight:800;color:#10b981">$' + parseFloat(o.total).toFixed(2) + '</span></div>')
     + actions + '</div>';
 }
 
@@ -3269,6 +3334,247 @@ async function liquidarTienda(tid){
   await renderAdminPedidos();
 }
 
+
+// ═══════════════════════════════════════════════════════════════
+// PAGOS: efectivo / transferencia (el administrador confirma las transferencias)
+// ═══════════════════════════════════════════════════════════════
+var checkoutPay = "efectivo";
+var datosPago = null;          // {banco, tipo_cuenta, numero_cuenta, titular, instrucciones}
+var datosPagoLoaded = false;
+var NUM_WA_NEGOCIO = "50378355712";
+
+function setPayMethod(m){
+  checkoutPay = (m === "transferencia") ? "transferencia" : "efectivo";
+  document.getElementById("pay-efectivo").classList.toggle("active", checkoutPay === "efectivo");
+  document.getElementById("pay-transferencia").classList.toggle("active", checkoutPay === "transferencia");
+  document.getElementById("pay-hint").textContent = checkoutPay === "efectivo"
+    ? "Pagas en efectivo al recibir tu pedido."
+    : "Al confirmar verás los datos para transferir. Tu pedido se libera cuando recibamos y confirmemos tu pago.";
+}
+async function loadDatosPago(){
+  if(!sb) return;
+  var r = await sb.from("datos_pago").select("*").eq("id", 1);
+  if(r.error){ datosPagoLoaded = false; return; }
+  datosPago = (r.data && r.data.length) ? r.data[0] : null;
+  datosPagoLoaded = true;
+}
+function datosPagoCompletos(){
+  return !!(datosPago && datosPago.banco && datosPago.numero_cuenta && datosPago.titular);
+}
+function bankDetailsHTML(){
+  if(!datosPagoCompletos()){
+    return '<div style="font-size:12px;color:#fca5a5">Aún no hay datos bancarios cargados. Escríbenos por WhatsApp para darte la cuenta.</div>';
+  }
+  var d = datosPago;
+  return '<div style="background:#0f1117;border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.6">'
+    + '<div>🏦 <strong>' + escapeHTML(d.banco) + '</strong>' + (d.tipo_cuenta ? ' · ' + escapeHTML(d.tipo_cuenta) : '') + '</div>'
+    + '<div>🔢 Cuenta: <strong style="letter-spacing:1px">' + escapeHTML(d.numero_cuenta) + '</strong></div>'
+    + '<div>👤 Titular: <strong>' + escapeHTML(d.titular) + '</strong></div>'
+    + (d.instrucciones ? '<div style="color:#cbd5e1;margin-top:4px">📝 ' + escapeHTML(d.instrucciones) + '</div>' : '')
+    + '</div>';
+}
+// Recuadro de pago dentro de "Mis pedidos"
+function pagoClienteHTML(o){
+  var est = (o.estado || "").toLowerCase().trim();
+  if(est === "cancelado") return "";
+  if(o.metodo_pago !== "transferencia"){
+    return '<div style="font-size:12px;color:#94a3b8;margin-bottom:10px">💵 Pagas en efectivo al recibir tu pedido</div>';
+  }
+  if(o.pago_confirmado_en){
+    return '<div style="font-size:12px;color:#10b981;margin-bottom:10px">✅ Pago por transferencia confirmado</div>';
+  }
+  var wa = "https://wa.me/" + NUM_WA_NEGOCIO + "?text=" + encodeURIComponent("Hola, envío el comprobante de la transferencia del pedido #" + o.id + " por " + money(o.total));
+  return '<div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.4);border-radius:10px;padding:12px;margin-bottom:12px">'
+    + '<div style="font-size:12px;font-weight:800;color:#f59e0b;margin-bottom:6px">⏳ ESPERANDO TU TRANSFERENCIA</div>'
+    + '<div style="font-size:13px;margin-bottom:8px">Transfiere <strong>' + money(o.total) + '</strong> y avísanos. Tu pedido se prepara en cuanto confirmemos el pago.</div>'
+    + bankDetailsHTML()
+    + '<div style="font-size:12px;color:#94a3b8;margin:8px 0">Referencia: <strong>Pedido #' + String(o.id) + '</strong></div>'
+    + '<a class="btn-map" style="margin:0;text-align:center" href="' + escapeHTML(wa) + '" target="_blank" rel="noopener">💬 Enviar comprobante por WhatsApp</a>'
+    + '</div>';
+}
+
+// Administrador: confirmar o deshacer la recepción de una transferencia
+async function adminConfirmarPago(id, confirmar, btn){
+  if(btn){ btn.disabled = true; }
+  var r = await sb.rpc("admin_confirmar_pago", { p_id: id, p_confirmar: !!confirmar });
+  if(r.error){ showToast(friendlyRpcError(r.error, "No se pudo actualizar el pago"), "err"); console.error(r.error); if(btn) btn.disabled = false; return; }
+  if(r.data === true){ showToast(confirmar ? "✅ Pago confirmado. El pedido ya se puede liberar" : "Confirmación deshecha", "ok"); }
+  else { showToast("No se pudo cambiar: el pedido ya avanzó o ya estaba confirmado", "err"); }
+  await renderAdminPedidos();
+}
+async function adminCancelarPedido(id){
+  if(!confirm("¿Cancelar el pedido #" + id + "? Esta acción no se puede deshacer.")) return;
+  await updateOrderStatus(id, "cancelado");
+}
+function adminPagoRowHTML(o, est){
+  if(est === "cancelado") return "";
+  var id = Number(o.id);
+  var b = function(txt, js, style){ return '<button style="padding:7px 12px;border-radius:8px;border:none;font-weight:700;font-size:12px;' + style + '" onclick="' + js + '">' + txt + '</button>'; };
+  if(o.metodo_pago !== "transferencia"){
+    return '<div style="font-size:12px;color:#94a3b8;margin-bottom:8px">💵 Efectivo contra entrega</div>';
+  }
+  if(!o.pago_confirmado_en){
+    return '<div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.4);border-radius:10px;padding:10px 12px;margin-bottom:10px">'
+      + '<div style="font-size:12px;font-weight:800;color:#ef4444;margin-bottom:4px">🏦 TRANSFERENCIA · PAGO SIN CONFIRMAR</div>'
+      + '<div style="font-size:12px;color:#cbd5e1;margin-bottom:8px">Revisa tu banco: debes recibir <strong>' + money(o.total) + '</strong> con referencia «Pedido #' + id + '». El pedido está <strong>bloqueado</strong> hasta que lo confirmes.</div>'
+      + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
+      + b("✅ Confirmar pago recibido", "adminConfirmarPago(" + id + ", true, this)", "background:#10b981;color:#042f1f")
+      + b("✖️ Cancelar pedido", "adminCancelarPedido(" + id + ")", "background:rgba(239,68,68,0.15);color:#ef4444")
+      + '</div></div>';
+  }
+  var puedeDeshacer = est === "pendiente" && !o.ofrecido_en && !o.tienda_id && !o.rider_id;
+  return '<div style="font-size:12px;color:#10b981;margin-bottom:8px">🏦 Transferencia · ✅ pago confirmado' + (o.pago_confirmado_en ? ' · ' + new Date(o.pago_confirmado_en).toLocaleString("es") : '')
+    + (puedeDeshacer ? ' <button style="margin-left:6px;padding:3px 8px;border-radius:6px;border:none;background:rgba(148,163,184,0.15);color:#94a3b8;font-size:11px" onclick="adminConfirmarPago(' + id + ', false, this)">↩ Deshacer</button>' : '')
+    + '</div>';
+}
+function pagoBloqueado(o){ return o.metodo_pago === "transferencia" && !o.pago_confirmado_en; }
+
+// Pestaña Pagos (administrador): datos bancarios
+async function renderDatosPagoForm(){
+  await loadDatosPago();
+  document.getElementById("pagos-unavailable").classList.toggle("hide", datosPagoLoaded);
+  var d = datosPago || {};
+  document.getElementById("pago-banco").value = d.banco || "";
+  document.getElementById("pago-tipo").value = d.tipo_cuenta || "";
+  document.getElementById("pago-numero").value = d.numero_cuenta || "";
+  document.getElementById("pago-titular").value = d.titular || "";
+  document.getElementById("pago-instr").value = d.instrucciones || "";
+  document.getElementById("pago-preview").innerHTML = '<div style="font-size:11px;font-weight:800;color:#94a3b8;margin-bottom:6px">ASÍ LO VE EL CLIENTE</div>' + bankDetailsHTML();
+}
+async function saveDatosPago(){
+  var v = function(id){ return document.getElementById(id).value.trim(); };
+  var row = { id: 1, banco: v("pago-banco"), tipo_cuenta: v("pago-tipo") || null, numero_cuenta: v("pago-numero"), titular: v("pago-titular"), instrucciones: v("pago-instr") || null, actualizado_en: new Date().toISOString() };
+  if(!row.banco || !row.numero_cuenta || !row.titular){ showToast("Banco, número de cuenta y titular son obligatorios", "err"); return; }
+  var r = await sb.from("datos_pago").upsert(row);
+  if(r.error){ showToast("No se pudieron guardar los datos bancarios", "err"); console.error(r.error); return; }
+  showToast("✅ Datos bancarios guardados", "ok");
+  await renderDatosPagoForm();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TIEMPOS: dónde se generan las demoras (solo administrador)
+// ═══════════════════════════════════════════════════════════════
+function fmtMin(m){
+  if(m == null || isNaN(m)) return "—";
+  if(m < 1) return "<1 min";
+  if(m < 60) return Math.round(m) + " min";
+  if(m < 1440){ var h = Math.floor(m / 60); return h + " h " + Math.round(m - h * 60) + " min"; }
+  var d = Math.floor(m / 1440); return d + " d " + Math.round((m - d * 1440) / 60) + " h";
+}
+function pctl(arr, q){
+  if(!arr.length) return null;
+  var a = arr.slice().sort(function(x, y){ return x - y; });
+  var i = Math.min(a.length - 1, Math.max(0, Math.ceil(q * a.length) - 1));
+  return a[i];
+}
+function statsOf(arr){
+  if(!arr.length) return { n: 0, med: null, avg: null, p90: null };
+  var sum = arr.reduce(function(a, b){ return a + b; }, 0);
+  return { n: arr.length, med: pctl(arr, 0.5), avg: sum / arr.length, p90: pctl(arr, 0.9) };
+}
+function minBetween(a, b){
+  if(!a || !b) return null;
+  var d = (new Date(b) - new Date(a)) / 60000;
+  return d >= 0 ? d : null;
+}
+function maxDate(a, b){
+  if(!a) return b || null; if(!b) return a;
+  return new Date(a) > new Date(b) ? a : b;
+}
+var TIEMPOS_TRAMOS = [
+  { k: "pago",    nombre: "Pago por transferencia",        ayuda: "Pedido → pago confirmado",              f: function(r){ return r.metodo_pago === "transferencia" ? minBetween(r.t_creado, r.t_pago) : null; } },
+  { k: "reac",    nombre: "Tu reacción",                   ayuda: "Pedido (o pago) → ofrecido / en preparación", f: function(r){ return minBetween(r.t_pago || r.t_creado, r.t_ofrecido || r.t_preparacion); } },
+  { k: "tienda",  nombre: "Respuesta de la tienda",        ayuda: "Ofrecido → «Yo lo tengo»",              f: function(r){ return r.tienda_id ? minBetween(r.t_ofrecido, r.t_tienda_tomo) : null; } },
+  { k: "prep",    nombre: "Preparación en la tienda",      ayuda: "«Yo lo tengo» → «Listo para recoger»",  f: function(r){ return r.tienda_id ? minBetween(r.t_tienda_tomo, r.t_tienda_lista) : null; } },
+  { k: "rider",   nombre: "Búsqueda de rider",             ayuda: "En preparación → un rider lo toma",     f: function(r){ return minBetween(r.t_preparacion || r.t_tienda_tomo, r.t_rider_tomo); } },
+  { k: "recoge",  nombre: "Recogida",                      ayuda: "Listo y con rider → sale en camino",    f: function(r){ return minBetween(maxDate(r.tienda_id ? r.t_tienda_lista : r.t_preparacion, r.t_rider_tomo), r.t_en_camino); } },
+  { k: "entrega", nombre: "Trayecto al cliente",           ayuda: "En camino → entregado",                 f: function(r){ return minBetween(r.t_en_camino, r.t_entregado); } },
+  { k: "total",   nombre: "TOTAL (lo que percibe el cliente)", ayuda: "Pedido → entregado",                f: function(r){ return minBetween(r.t_creado, r.t_entregado); }, total: true }
+];
+function computeTiempos(rows){
+  var out = { n: rows.length, entregados: rows.filter(function(r){ return !!r.t_entregado; }).length, tramos: [], tiendas: {}, riders: {}, lentos: [] };
+  TIEMPOS_TRAMOS.forEach(function(t){
+    var vals = [];
+    rows.forEach(function(r){ var v = t.f(r); if(v != null) vals.push(v); });
+    var st = statsOf(vals); st.k = t.k; st.nombre = t.nombre; st.ayuda = t.ayuda; st.total = !!t.total;
+    out.tramos.push(st);
+  });
+  rows.forEach(function(r){
+    if(r.tienda_id){
+      var o = out.tiendas[r.tienda_id] = out.tiendas[r.tienda_id] || { n: 0, resp: [], prep: [] };
+      o.n++;
+      var a = minBetween(r.t_ofrecido, r.t_tienda_tomo); if(a != null) o.resp.push(a);
+      var b = minBetween(r.t_tienda_tomo, r.t_tienda_lista); if(b != null) o.prep.push(b);
+    }
+    if(r.rider_id){
+      var q = out.riders[r.rider_id] = out.riders[r.rider_id] || { n: 0, tomar: [], recoge: [], entrega: [] };
+      q.n++;
+      var c = TIEMPOS_TRAMOS[4].f(r); if(c != null) q.tomar.push(c);
+      var d = TIEMPOS_TRAMOS[5].f(r); if(d != null) q.recoge.push(d);
+      var e = TIEMPOS_TRAMOS[6].f(r); if(e != null) q.entrega.push(e);
+    }
+  });
+  rows.forEach(function(r){
+    var tot = minBetween(r.t_creado, r.t_entregado);
+    if(tot == null) return;
+    var peor = null;
+    TIEMPOS_TRAMOS.slice(0, 7).forEach(function(t){ var v = t.f(r); if(v != null && (!peor || v > peor.v)) peor = { nombre: t.nombre, v: v }; });
+    out.lentos.push({ id: r.pedido_id, total: tot, peor: peor });
+  });
+  out.lentos.sort(function(a, b){ return b.total - a.total; });
+  out.lentos = out.lentos.slice(0, 5);
+  return out;
+}
+function tiempoNombreTienda(id){ var t = (adminTiendas || []).filter(function(x){ return String(x.id) === String(id); })[0]; return t ? t.nombre : ("Tienda #" + id); }
+function tiempoNombreRider(id){ var r = (allRiders || []).filter(function(x){ return x.id === id; })[0]; return r ? r.nombre : "Rider"; }
+
+async function renderTiempos(){
+  var body = document.getElementById("tiempos-body");
+  if(!body) return;
+  var dias = parseInt(document.getElementById("tiempos-dias").value, 10) || 30;
+  body.innerHTML = '<div style="color:#94a3b8;font-size:13px">Calculando…</div>';
+  var r = await sb.rpc("admin_tiempos", { p_dias: dias });
+  document.getElementById("tiempos-unavailable").classList.toggle("hide", !r.error);
+  if(r.error){ body.innerHTML = ""; console.error(r.error); return; }
+  if(!adminTiendas || !adminTiendas.length) await loadTiendasAdmin();
+  if(!allRiders || !allRiders.length) await loadRiders();
+  var rows = r.data || [];
+  if(!rows.length){ body.innerHTML = '<div class="empty-state"><div style="font-size:48px;margin-bottom:14px">⏱</div><div style="font-size:15px;font-weight:600">Aún no hay pedidos en este período</div></div>'; return; }
+  var c = computeTiempos(rows);
+  // Tramo con la mayor demora (mediana), sin contar el total
+  var mayor = null;
+  c.tramos.forEach(function(t){ if(!t.total && t.n > 0 && (!mayor || t.med > mayor.med)) mayor = t; });
+  var html = '<div class="profile-card" style="padding:14px 16px;margin-bottom:14px"><div style="font-size:13px"><strong>' + c.n + '</strong> pedido(s) · <strong>' + c.entregados + '</strong> entregado(s)</div>'
+    + (mayor ? '<div style="margin-top:8px;font-size:13px;color:#fca5a5">⚠️ Donde más se demora: <strong>' + escapeHTML(mayor.nombre) + '</strong> (mediana ' + fmtMin(mayor.med) + ')</div>' : '')
+    + (c.entregados < 10 ? '<div style="margin-top:8px;font-size:11px;color:#94a3b8">Con menos de 10 pedidos entregados los promedios todavía no son confiables: un solo pedido raro cambia todo. Mira la tendencia en varias semanas.</div>' : '')
+    + '</div>';
+  html += '<div class="profile-card" style="padding:12px 14px;margin-bottom:14px"><div style="font-weight:800;margin-bottom:8px">Por tramo del pedido</div><div style="overflow-x:auto"><table class="tbl"><tr><th>Tramo</th><th class="num">Pedidos</th><th class="num">Mediana</th><th class="num">Promedio</th><th class="num">El 10% peor</th></tr>'
+    + c.tramos.map(function(t){
+        var hot = mayor && t.k === mayor.k;
+        return '<tr style="' + (hot ? 'background:rgba(239,68,68,0.1);' : '') + (t.total ? 'font-weight:800;' : '') + '"><td>' + (hot ? '⚠️ ' : '') + escapeHTML(t.nombre) + '<div style="font-size:10px;color:#94a3b8;font-weight:500">' + escapeHTML(t.ayuda) + '</div></td>'
+          + '<td class="num">' + t.n + '</td><td class="num">' + fmtMin(t.med) + '</td><td class="num">' + fmtMin(t.avg) + '</td><td class="num">' + fmtMin(t.p90) + '</td></tr>';
+      }).join("")
+    + '</table></div><div style="font-size:11px;color:#94a3b8;margin-top:8px">Mediana = el tiempo típico. «El 10% peor» = el tiempo que superan los pedidos más lentos.</div></div>';
+  var tk = Object.keys(c.tiendas);
+  if(tk.length){
+    html += '<div class="profile-card" style="padding:12px 14px;margin-bottom:14px"><div style="font-weight:800;margin-bottom:8px">🏪 Por tienda</div><div style="overflow-x:auto"><table class="tbl"><tr><th>Tienda</th><th class="num">Pedidos</th><th class="num">Responde</th><th class="num">Prepara</th></tr>'
+      + tk.map(function(id){ var o = c.tiendas[id]; return '<tr><td>' + escapeHTML(tiempoNombreTienda(id)) + '</td><td class="num">' + o.n + '</td><td class="num">' + fmtMin(statsOf(o.resp).med) + '</td><td class="num">' + fmtMin(statsOf(o.prep).med) + '</td></tr>'; }).join("")
+      + '</table></div><div style="font-size:11px;color:#94a3b8;margin-top:8px">Tiempos típicos (mediana). Úsalo para conversar con cada tienda, no para castigar.</div></div>';
+  }
+  var rk = Object.keys(c.riders);
+  if(rk.length){
+    html += '<div class="profile-card" style="padding:12px 14px;margin-bottom:14px"><div style="font-weight:800;margin-bottom:8px">🏍️ Por rider</div><div style="overflow-x:auto"><table class="tbl"><tr><th>Rider</th><th class="num">Pedidos</th><th class="num">Lo toma</th><th class="num">Recoge</th><th class="num">Entrega</th></tr>'
+      + rk.map(function(id){ var o = c.riders[id]; return '<tr><td>' + escapeHTML(tiempoNombreRider(id)) + '</td><td class="num">' + o.n + '</td><td class="num">' + fmtMin(statsOf(o.tomar).med) + '</td><td class="num">' + fmtMin(statsOf(o.recoge).med) + '</td><td class="num">' + fmtMin(statsOf(o.entrega).med) + '</td></tr>'; }).join("")
+      + '</table></div></div>';
+  }
+  if(c.lentos.length){
+    html += '<div class="profile-card" style="padding:12px 14px"><div style="font-weight:800;margin-bottom:8px">🐢 Los 5 pedidos más lentos</div>'
+      + c.lentos.map(function(l){ return '<div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:6px 0;border-bottom:1px solid #1d2136"><span>#' + l.id + (l.peor ? ' <span style="color:#94a3b8;font-size:11px">· más lento en: ' + escapeHTML(l.peor.nombre) + ' (' + fmtMin(l.peor.v) + ')</span>' : '') + '</span><strong>' + fmtMin(l.total) + '</strong></div>'; }).join("")
+      + '</div>';
+  }
+  body.innerHTML = html;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // PEDIDOS — ADMIN (sección separada, Activos / Históricos)
 // ═══════════════════════════════════════════════════════════════
@@ -3311,6 +3617,12 @@ function setAdminPedidosTab(tab){
   document.getElementById("admin-pedidos-cobertura").classList.toggle("hide",tab!=="cobertura");
   document.getElementById("ap-tab-tiendas").classList.toggle("active",tab==="tiendas");
   document.getElementById("admin-pedidos-tiendas").classList.toggle("hide",tab!=="tiendas");
+  document.getElementById("ap-tab-pagos").classList.toggle("active",tab==="pagos");
+  document.getElementById("admin-pedidos-pagos").classList.toggle("hide",tab!=="pagos");
+  document.getElementById("ap-tab-tiempos").classList.toggle("active",tab==="tiempos");
+  document.getElementById("admin-pedidos-tiempos").classList.toggle("hide",tab!=="tiempos");
+  if(tab==="pagos") renderDatosPagoForm();
+  if(tab==="tiempos") renderTiempos();
 }
 
 function renderInvGrid(){
@@ -3335,6 +3647,7 @@ function renderOrders(lista){
   el.innerHTML=lista.map(function(o){
     var items=o.pedido_items||[];
     var est = (o.estado || "pendiente").toLowerCase().trim();
+    var bloq = pagoBloqueado(o) && est !== "cancelado";
 
     return '<div class="order-card">'
       +'<div style="display:flex;justify-content:space-between;margin-bottom:6px">'
@@ -3344,7 +3657,8 @@ function renderOrders(lista){
       +'<div style="font-size:12px;color:#94a3b8;margin-bottom:6px">📍 '+escapeHTML(o.direccion||o.address||"")+(o.municipio?' ('+escapeHTML(o.municipio)+')':'')+' · 📞 '+escapeHTML(o.telefono)+'</div>'
       + orderMapButtonHTML(o)
       +'<div style="font-size:12px;color:#94a3b8;margin-bottom:10px">🕐 '+new Date(o.creado_en).toLocaleString("es")+' · '+items.length+' producto(s)</div>'
-      +'<div style="display:flex;align-items:center;gap:10px;background:#0f1117;padding:8px 12px;border-radius:8px">'
+      + adminPagoRowHTML(o, est)
+      + (bloq ? '' : '<div style="display:flex;align-items:center;gap:10px;background:#0f1117;padding:8px 12px;border-radius:8px">'
       +'<span style="font-size:11px;color:#94a3b8;font-weight:700">ESTADO:</span>'
       +'<select style="flex:1;padding:5px 8px;font-size:12px" onchange="updateOrderStatus('+o.id+', this.value)">'
       +'<option value="pendiente" '+(est==="pendiente"?"selected":"")+'>📋 Pendiente</option>'
@@ -3352,11 +3666,15 @@ function renderOrders(lista){
       +'<option value="en_camino" '+(est==="en_camino"||est==="en camino"?"selected":"")+'>🚵 En Camino</option>'
       +'<option value="entregado" '+(est==="entregado"?"selected":"")+'>✅ Entregado</option>'
       +'</select>'
-      +'</div>'
-      + tiendaAdminRowHTML(o, est)
-      + riderAssignRowHTML(o, est)
+      +'</div>')
+      + (bloq ? '' : tiendaAdminRowHTML(o, est))
+      + (bloq ? '' : riderAssignRowHTML(o, est))
       +'</div>';
   }).join("");
+  var nPagos = lista.filter(function(o){ return pagoBloqueado(o) && (o.estado || "") !== "cancelado"; }).length;
+  if(nPagos > 0){
+    el.innerHTML = '<div class="tip-banner" style="margin:12px 18px;background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.4);color:#fbbf24">🏦 ' + nPagos + ' pedido(s) por transferencia esperan que confirmes el pago.</div>' + el.innerHTML;
+  }
   var nAlerta = offeredAlertCount();
   if(nAlerta > 0){
     el.innerHTML = '<div class="tip-banner" style="margin:12px 18px;background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.4);color:#fca5a5">⚠️ ' + nAlerta + ' pedido(s) ofrecido(s) a las tiendas llevan más de ' + OFERTA_MIN + ' min sin respuesta.</div>' + el.innerHTML;
@@ -3440,7 +3758,7 @@ async function deleteSelectedHistoricos(){
 async function updateOrderStatus(orderId, newStatus) {
   var { data, error } = await sb.from("pedidos").update({ estado: newStatus }).eq("id", orderId).select().single();
   if (error) {
-    showToast("Error actualizando estado en Supabase", "err");
+    showToast(/transferencia/.test(error.message || "") ? "Este pedido es por transferencia: confirma primero el pago" : "Error actualizando estado en Supabase", "err");
     console.error(error);
     return;
   }
