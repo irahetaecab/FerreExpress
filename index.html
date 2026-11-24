@@ -2295,7 +2295,7 @@ async function placeOrder() {
     var conocido = /^(Por ahora no llegamos|La ubicación de entrega|Tu carrito|Stock insuficiente|Ya tienes|Un producto|Producto o cantidad|Cantidad|Nombre|Teléfono|Dirección|Debes iniciar|Demasiados|Las notas|Método de pago)/.test(emsg);
     var amigable = conocido ? emsg
       : (/crear_pedido/i.test(emsg) && /schema cache|function/i.test(emsg)
-          ? "El sistema se está actualizando. Intenta de nuevo en unos minutos."
+          ? (metodoPago === "transferencia" ? "Las transferencias aún no están habilitadas. Elige efectivo o escríbenos por WhatsApp." : "El sistema se está actualizando. Intenta de nuevo en unos minutos.")
           : "No se pudo crear el pedido. Intenta de nuevo.");
     showToast(amigable, "err");
     console.error(rpc.error);
@@ -3381,16 +3381,33 @@ function pagoClienteHTML(o){
     return '<div style="font-size:12px;color:#94a3b8;margin-bottom:10px">💵 Pagas en efectivo al recibir tu pedido</div>';
   }
   if(o.pago_confirmado_en){
-    return '<div style="font-size:12px;color:#10b981;margin-bottom:10px">✅ Pago por transferencia confirmado</div>';
+    if(est === "entregado") return '<div style="font-size:12px;color:#10b981;margin-bottom:10px">✅ Pagado por transferencia</div>';
+    return '<div style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.5);border-radius:10px;padding:12px;margin-bottom:12px">'
+      + '<div style="font-size:13px;font-weight:800;color:#10b981">✅ PAGO RECIBIDO</div>'
+      + '<div style="font-size:13px;color:#cbd5e1;margin-top:4px">Confirmamos tu transferencia de <strong>' + money(o.total) + '</strong>. Ya estamos preparando tu pedido.</div></div>';
   }
   var wa = "https://wa.me/" + NUM_WA_NEGOCIO + "?text=" + encodeURIComponent("Hola, envío el comprobante de la transferencia del pedido #" + o.id + " por " + money(o.total));
+  var id = Number(o.id);
+  if(o.pago_reportado_en){
+    return '<div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.45);border-radius:10px;padding:12px;margin-bottom:12px">'
+      + '<div style="font-size:12px;font-weight:800;color:#93c5fd;margin-bottom:4px">🔎 PAGO EN PROCESO</div>'
+      + '<div style="font-size:13px;color:#cbd5e1">Recibimos tu aviso. Estamos verificando la transferencia de <strong>' + money(o.total) + '</strong>; te avisaremos aquí en cuanto la confirmemos y tu pedido empezará a prepararse.</div>'
+      + '<div style="font-size:12px;color:#94a3b8;margin:8px 0">Referencia: <strong>Pedido #' + String(o.id) + '</strong></div>'
+      + '<a class="btn-map" style="margin:0;text-align:center" href="' + escapeHTML(wa) + '" target="_blank" rel="noopener">💬 Enviar el comprobante por WhatsApp</a></div>';
+  }
   return '<div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.4);border-radius:10px;padding:12px;margin-bottom:12px">'
     + '<div style="font-size:12px;font-weight:800;color:#f59e0b;margin-bottom:6px">⏳ ESPERANDO TU TRANSFERENCIA</div>'
-    + '<div style="font-size:13px;margin-bottom:8px">Transfiere <strong>' + money(o.total) + '</strong> y avísanos. Tu pedido se prepara en cuanto confirmemos el pago.</div>'
+    + '<div style="font-size:13px;margin-bottom:8px">Transfiere <strong>' + money(o.total) + '</strong> a esta cuenta. Tu pedido se prepara en cuanto confirmemos el pago.</div>'
     + bankDetailsHTML()
     + '<div style="font-size:12px;color:#94a3b8;margin:8px 0">Referencia: <strong>Pedido #' + String(o.id) + '</strong></div>'
-    + '<a class="btn-map" style="margin:0;text-align:center" href="' + escapeHTML(wa) + '" target="_blank" rel="noopener">💬 Enviar comprobante por WhatsApp</a>'
+    + '<a class="btn-map" style="margin:0;text-align:center" href="' + escapeHTML(wa) + '" target="_blank" rel="noopener" onclick="clienteReportarPago(' + id + ')">✅ Ya transferí · enviar comprobante por WhatsApp</a>'
     + '</div>';
+}
+// El cliente avisa que ya transfirió (el pedido pasa a "Pago en proceso"; no confirma nada)
+async function clienteReportarPago(id){
+  var r = await sb.rpc("cliente_reportar_pago", { p_id: id });
+  if(r.error){ console.error(r.error); return; }
+  setTimeout(async function(){ await loadMyOrders(); if(currentView === "pedidos") renderMyOrders(); }, 600);
 }
 
 // Administrador: confirmar o deshacer la recepción de una transferencia
@@ -3416,6 +3433,7 @@ function adminPagoRowHTML(o, est){
   if(!o.pago_confirmado_en){
     return '<div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.4);border-radius:10px;padding:10px 12px;margin-bottom:10px">'
       + '<div style="font-size:12px;font-weight:800;color:#ef4444;margin-bottom:4px">🏦 TRANSFERENCIA · PAGO SIN CONFIRMAR</div>'
+      + (o.pago_reportado_en ? '<div style="font-size:12px;font-weight:700;color:#fbbf24;margin-bottom:4px">💬 El cliente avisó que ya transfirió · ' + timeAgo(o.pago_reportado_en) + '</div>' : '')
       + '<div style="font-size:12px;color:#cbd5e1;margin-bottom:8px">Revisa tu banco: debes recibir <strong>' + money(o.total) + '</strong> con referencia «Pedido #' + id + '». El pedido está <strong>bloqueado</strong> hasta que lo confirmes.</div>'
       + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
       + b("✅ Confirmar pago recibido", "adminConfirmarPago(" + id + ", true, this)", "background:#10b981;color:#042f1f")
@@ -3425,7 +3443,12 @@ function adminPagoRowHTML(o, est){
   var puedeDeshacer = est === "pendiente" && !o.ofrecido_en && !o.tienda_id && !o.rider_id;
   return '<div style="font-size:12px;color:#10b981;margin-bottom:8px">🏦 Transferencia · ✅ pago confirmado' + (o.pago_confirmado_en ? ' · ' + new Date(o.pago_confirmado_en).toLocaleString("es") : '')
     + (puedeDeshacer ? ' <button style="margin-left:6px;padding:3px 8px;border-radius:6px;border:none;background:rgba(148,163,184,0.15);color:#94a3b8;font-size:11px" onclick="adminConfirmarPago(' + id + ', false, this)">↩ Deshacer</button>' : '')
+    + (est !== "entregado" ? ' <a href="' + escapeHTML(avisoPagoWA(o)) + '" target="_blank" rel="noopener" style="margin-left:6px;padding:3px 8px;border-radius:6px;background:rgba(16,185,129,0.15);color:#10b981;font-size:11px;font-weight:700;text-decoration:none">💬 Avisar al cliente</a>' : '')
     + '</div>';
+}
+function avisoPagoWA(o){
+  var msg = "Hola " + (o.nombre_cliente || "") + ", recibimos tu pago del pedido #" + o.id + " ✅ Ya lo estamos preparando. ¡Gracias por tu compra en FerreExpress!";
+  return "https://wa.me/" + riderPhoneDigits(o.telefono) + "?text=" + encodeURIComponent(msg);
 }
 function pagoBloqueado(o){ return o.metodo_pago === "transferencia" && !o.pago_confirmado_en; }
 
@@ -3672,8 +3695,9 @@ function renderOrders(lista){
       +'</div>';
   }).join("");
   var nPagos = lista.filter(function(o){ return pagoBloqueado(o) && (o.estado || "") !== "cancelado"; }).length;
+  var nAvisaron = lista.filter(function(o){ return pagoBloqueado(o) && (o.estado || "") !== "cancelado" && o.pago_reportado_en; }).length;
   if(nPagos > 0){
-    el.innerHTML = '<div class="tip-banner" style="margin:12px 18px;background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.4);color:#fbbf24">🏦 ' + nPagos + ' pedido(s) por transferencia esperan que confirmes el pago.</div>' + el.innerHTML;
+    el.innerHTML = '<div class="tip-banner" style="margin:12px 18px;background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.4);color:#fbbf24">🏦 ' + nPagos + ' pedido(s) por transferencia esperan que confirmes el pago' + (nAvisaron ? ' (' + nAvisaron + ' ya avisó/avisaron que transfirió)' : '') + '.</div>' + el.innerHTML;
   }
   var nAlerta = offeredAlertCount();
   if(nAlerta > 0){
@@ -4011,7 +4035,10 @@ setInterval(async function(){
   if(!currentUser || document.hidden) return;
   var activos = myOrders.some(function(o){ var e=(o.estado||"pendiente").toLowerCase().trim(); return e!=="entregado" && e!=="cancelado"; });
   if(!activos) return;
+  var antes = {};
+  myOrders.forEach(function(o){ antes[o.id] = !!o.pago_confirmado_en; });
   await loadMyOrders();
+  myOrders.forEach(function(o){ if(o.pago_confirmado_en && antes[o.id] === false) showToast("✅ Recibimos tu pago del pedido #" + o.id, "ok"); });
   if(currentView === "pedidos") renderMyOrders();
 }, 20000);
 
